@@ -118,7 +118,6 @@ function void
 tc_do_full_lex_async(Async_Context *actx, Data data){
     if (data.size == sizeof(Buffer_ID)){
         Buffer_ID *buffer = (Buffer_ID*)data.data;
-        
         tc_do_full_lex_async__inner(actx, *buffer);
     }
 }
@@ -131,6 +130,10 @@ BUFFER_HOOK_SIG(tc_begin_buffer){
     
     b32 treat_as_code = false;
     String_Const_u8 file_name = push_buffer_file_name(app, scratch, buffer_id);
+    // String_Const_u8 directory = string_front_of_path(file_name);
+    if (global_config.automatically_load_project){
+        load_project(app);
+    }
     Language **language = scope_attachment(app, scope, buffer_language, Language*);
     *language = 0;
     
