@@ -72,18 +72,20 @@ struct Language
     String_Const_u8 ext_string;
     char **token_kind_names;
     // @note(tyler): These are required for a cancellable lexer,
-    //               but the `Lex_State_<>` is specific to each language
+    //               but the `Lex_State_{}` is specific to each language
     /*
-        void (*lex_init)(Lex_State_<> *state_ptr, String_Const_u8 input);
-        void (*lex_breaks)(Arena *arena, Token_List *list, Lex_State_<> *state_ptr, u64 max);
+        void (*lex_init)(Lex_State_{} *state_ptr, String_Const_u8 input);
+        void (*lex_breaks)(Arena *arena, Token_List *list, Lex_State_{} *state_ptr, u64 max);
      */
     Token_List (*lex_full_input)(Arena *arena, String_Const_u8 input);
     b32 (*try_index)(Code_Index_File *index, Generic_Parse_State *state, Token *token);
     FColor (*get_token_color)(Token token);
+    Parsed_Jump (*parse_jump_location)(String_Const_u8 line);
     
     String_Const_u8_Array extensions;
 };
 
+global Language *last_compiled_language = 0;
 global Language languages[] = {
     {
         SCu8("CPP"),
@@ -92,6 +94,7 @@ global Language languages[] = {
         lex_full_input_cpp,
         cpp_try_index,
         cpp_get_token_color,
+        parse_jump_location
     },
     {
         SCu8("Odin"),
@@ -99,7 +102,8 @@ global Language languages[] = {
         token_odin_kind_names,
         lex_full_input_odin,
         odin_try_index,
-        odin_get_token_color
+        odin_get_token_color,
+        odin_parse_jump_location
     }
 };
 
@@ -111,4 +115,33 @@ function void init_languages(Application_Links *app, Arena *arena)
     {
         languages[l].extensions = parse_extension_line_to_extension_list(app, arena, languages[l].ext_string);
     }
+}
+
+// Helper Functions
+function Language **buffer_get_language(Application_Links *app, Buffer_ID buffer)
+{
+    Managed_Scope scope = buffer_get_managed_scope(app, buffer);
+    return scope_attachment(app, scope, buffer_language, Language*);
+}
+
+function void buffer_set_language(Application_Links *app, Buffer_ID buffer, Language *language)
+{
+    Managed_Scope scope = buffer_get_managed_scope(app, buffer);
+    Language **lang_ptr = scope_attachment(app, scope, buffer_language, Language*);
+    *lang_ptr = language;
+}
+
+function Language *language_from_extension(String_Const_u8 ext)
+{
+    for (i32 l = 0; l < LANG_COUNT; l++)
+    {
+        for (i32 e = 0; e < languages[l].extensions.count; e++)
+        {
+            if (string_match(ext, languages[l].extensions.strings[e]))
+            {
+                return &languages[l];
+            }
+        }
+    }
+    return 0;
 }

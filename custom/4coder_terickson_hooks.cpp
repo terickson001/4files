@@ -137,17 +137,8 @@ BUFFER_HOOK_SIG(tc_begin_buffer){
     if (file_name.size > 0){
         String_Const_u8_Array extensions = global_config.code_exts;
         String_Const_u8 ext = string_file_extension(file_name);
-        for (i32 l = 0; l < LANG_COUNT; l++)
-        {
-            for (i32 e = 0; e < languages[l].extensions.count; e++)
-            {
-                if (string_match(ext, languages[l].extensions.strings[e]))
-                {
-                    *language = &languages[l];
-                    treat_as_code = true;
-                }
-            }
-        }
+        *language = language_from_extension(ext);
+        if (*language) treat_as_code = true;
         
         // @note(tyler): Leave this for now for other file-types
         for (i32 i = 0; i < extensions.count; ++i) {

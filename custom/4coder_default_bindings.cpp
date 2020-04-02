@@ -22,7 +22,10 @@
 #include "4coder_terickson_code_index.cpp"
 #include "4coder_terickson_highlight.cpp"
 #include "4coder_terickson_hooks.cpp"
+#include "4coder_terickson_project.cpp"
+#include "4coder_terickson_jump.cpp"
 #include "4coder_terickson_commands.cpp"
+#include "4coder_terickson_map.cpp"
 
 global Arena *tc_global_arena = {};
 
@@ -45,7 +48,8 @@ custom_layer_init(Application_Links *app){
     set_custom_hook(app, HookID_Tick, tc_tick);
     
     mapping_init(tctx, &framework_mapping);
-    setup_default_mapping(&framework_mapping, mapid_global, mapid_file, mapid_code);
+    // setup_default_mapping(&framework_mapping, mapid_global, mapid_file, mapid_code);
+    tc_setup_mapping(&framework_mapping, mapid_global, mapid_file, mapid_code);
 }
 
 #endif //FCODER_DEFAULT_BINDINGS
