@@ -7,7 +7,7 @@ custom_4coder.so
 fonts
 project.4coder
 
-themes
+themes/*
 !themes/theme-naysayer.4coder
 
 custom/4coder_app_links_allocator.cpp
