@@ -1,70 +1,3 @@
-// Conformant interface for CPP builtins
-
-b32 cpp_try_index(Code_Index_File *index, Generic_Parse_State *state, Token *token)
-{
-    if (token->sub_kind == TokenCppKind_Struct ||
-        token->sub_kind == TokenCppKind_Union ||
-        token->sub_kind == TokenCppKind_Enum){
-        cpp_parse_type_structure(index, state, 0);
-        return true;
-    }
-    else if (token->sub_kind == TokenCppKind_Typedef) {
-        cpp_parse_type_def(index, state, 0);
-        return true;
-    }
-    else if (token->sub_kind == TokenCppKind_Identifier) {
-        cpp_parse_function(index, state, 0);
-        return true;
-    }
-    return false;
-}
-
-FColor cpp_get_token_color(Token token)
-{
-    Managed_ID color = defcolor_text_default;
-    switch (token.kind) {
-        case TokenBaseKind_Preprocessor:
-        {
-            color = defcolor_preproc;
-        } break;
-        case TokenBaseKind_Keyword:
-        {
-            color = defcolor_keyword; break;
-        } break;
-        case TokenBaseKind_Comment:
-        {
-            color = defcolor_comment;
-        } break;
-        case TokenBaseKind_LiteralString:
-        {
-            color = defcolor_str_constant;
-        } break;
-        case TokenBaseKind_LiteralInteger:
-        {
-            color = defcolor_int_constant;
-        } break;
-        case TokenBaseKind_LiteralFloat:
-        {
-            color = defcolor_float_constant;
-        } break;
-        default:
-        {
-            switch (token.sub_kind){
-                case TokenCppKind_LiteralTrue:
-                case TokenCppKind_LiteralFalse:
-                {
-                    color = defcolor_bool_constant;
-                } break;
-                
-                case TokenCppKind_PPIncludeFile:
-                {
-                    color = defcolor_include;
-                } break;
-            }
-        } break;
-    }
-    return(fcolor_id(color));
-}
 
 struct Language
 {
@@ -85,27 +18,27 @@ struct Language
     String_Const_u8_Array extensions;
 };
 
+#define LANG(PRETTY, NAME, EXT) \
+{ \
+SCu8(PRETTY), \
+SCu8(EXT), \
+token_##NAME##_kind_names, \
+lex_full_input_##NAME, \
+NAME##_try_index, \
+NAME##_get_token_color, \
+NAME##_parse_jump_location \
+}
+
 global Language *last_compiled_language = 0;
 global Language languages[] = {
-    {
-        SCu8("CPP"),
-        SCu8(".c.cpp.h.hpp.cc.glsl"),
-        token_cpp_kind_names,
-        lex_full_input_cpp,
-        cpp_try_index,
-        cpp_get_token_color,
-        parse_jump_location
-    },
-    {
-        SCu8("Odin"),
-        SCu8(".odin"),
-        token_odin_kind_names,
-        lex_full_input_odin,
-        odin_try_index,
-        odin_get_token_color,
-        odin_parse_jump_location
-    }
+    LANG("CPP", cpp, ".c.cpp.h.hpp.cc"),
+    LANG("Odin", odin, ".odin"),
+    LANG("GLSL", glsl, ".glsl.vert.frag.geom.tess.vs.fs.gs.ts.compute")
 };
+
+#undef LANG
+
+global Language *default_language = &languages[0];
 
 #define LANG_COUNT (sizeof(languages)/sizeof(*languages))
 
@@ -144,4 +77,56 @@ function Language *language_from_extension(String_Const_u8 ext)
         }
     }
     return 0;
+}
+
+function Language *language_from_name(String_Const_u8 name)
+{
+    for (i32 l = 0; l < LANG_COUNT; l++)
+    {
+        if (string_match_insensitive(name, languages[l].name))
+        {
+            return &languages[l];
+        }
+    }
+    return 0;
+}
+
+
+function void init_buffer(Application_Links *app, Buffer_ID buffer_id);
+CUSTOM_COMMAND_SIG(set_language)
+CUSTOM_DOC("Set the language for the current buffer.")
+{
+    View_ID view = get_active_view(app, Access_Always);
+    i64 cursor = view_get_cursor_pos(app, view);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
+    
+    u8 language_buff[1024];
+    
+    Query_Bar_Group bar_group(app);
+    Query_Bar language_bar = {};
+    language_bar.prompt = string_u8_litexpr("Language: ");
+    language_bar.string = SCu8(language_buff, (u64)0);
+    language_bar.string_capacity = 1024;
+    if (!query_user_string(app, &language_bar)) return;
+    if (language_bar.string.size == 0) return;
+    
+    Scratch_Block scratch(app);
+    
+    Language *language = language_from_name(language_bar.string);
+    print_message(app, push_stringf(scratch, "Setting language to %.*s\n", string_expand(language->name)));
+    buffer_set_language(app, buffer, language_from_name(language_bar.string));
+    init_buffer(app, buffer); // @note(tyler): Must re-init with language
+}
+
+CUSTOM_COMMAND_SIG(print_language)
+CUSTOM_DOC("Print the language for the current buffer.")
+{
+    View_ID view = get_active_view(app, Access_Always);
+    i64 cursor = view_get_cursor_pos(app, view);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
+    
+    Scratch_Block scratch(app);
+    
+    Language *lang = *buffer_get_language(app, buffer);
+    print_message(app, push_stringf(scratch, "Language is set to %.*s\n", string_expand(lang->name)));
 }

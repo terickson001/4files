@@ -1,3 +1,21 @@
+CUSTOM_COMMAND_SIG(tc_startup)
+CUSTOM_DOC("Custom startup hook")
+{
+    ProfileScope(app, "[TErickson] Startup");
+    User_Input input = get_current_input(app);
+    if (match_core_code(&input, CoreCode_Startup)){
+        String_Const_u8_Array file_names = input.event.core.file_names;
+        load_themes_default_folder(app);
+        default_4coder_initialize(app, file_names);
+        Buffer_Identifier buffer = buffer_identifier(string_u8_litexpr("*scratch*"));
+        if (file_names.count > 0)
+            buffer = buffer_identifier(file_names.vals[0]);
+        default_4coder_one_panel(app, buffer);
+        if (global_config.automatically_load_project)
+            load_project(app);
+    }
+}
+
 function void tc_render_caller(Application_Links *app, Frame_Info frame_info, View_ID view_id){
     ProfileScope(app, "[TErickson] render caller");
     View_ID active_view = get_active_view(app, Access_Always);
@@ -122,8 +140,8 @@ tc_do_full_lex_async(Async_Context *actx, Data data){
     }
 }
 
-BUFFER_HOOK_SIG(tc_begin_buffer){
-    ProfileScope(app, "[TErickson] begin buffer");
+function void init_buffer(Application_Links *app, Buffer_ID buffer_id)
+{
     Scratch_Block scratch(app);
     
     Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);
@@ -135,22 +153,20 @@ BUFFER_HOOK_SIG(tc_begin_buffer){
         load_project(app);
     }
     Language **language = scope_attachment(app, scope, buffer_language, Language*);
-    *language = 0;
     
-    if (file_name.size > 0){
+    if (!*language && file_name.size > 0){
         String_Const_u8_Array extensions = global_config.code_exts;
         String_Const_u8 ext = string_file_extension(file_name);
         *language = language_from_extension(ext);
-        if (*language) treat_as_code = true;
         
-        // @note(tyler): Leave this for now for other file-types
-        for (i32 i = 0; i < extensions.count; ++i) {
+        for (i32 i = 0; !*language && i < extensions.count; ++i) {
             if (string_match(ext, extensions.strings[i])) {
                 treat_as_code = true;
             }
             break;
         }
     }
+    if (*language) treat_as_code = true;
     
     Command_Map_ID map_id = (treat_as_code)?(mapid_code):(mapid_file);
     Command_Map_ID *map_id_ptr = scope_attachment(app, scope, buffer_map_id, Command_Map_ID);
@@ -195,9 +211,15 @@ BUFFER_HOOK_SIG(tc_begin_buffer){
             buffer_set_layout(app, buffer_id, layout_generic);
         }
     }
+}
+
+BUFFER_HOOK_SIG(tc_begin_buffer){
+    ProfileScope(app, "[TErickson] begin buffer");
+    
+    init_buffer(app, buffer_id);
     
     // no meaning for return
-    return(0);
+    return 0;
 }
 
 BUFFER_EDIT_RANGE_SIG(tc_buffer_edit_range){

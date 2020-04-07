@@ -1,14 +1,4 @@
-function b32 odin_is_builtin_type(Token *token)
-{
-    return TokenOdinKind_byte <= token->sub_kind &&
-        token->sub_kind <= TokenOdinKind_u128be;
-}
-
-function b32 odin_is_builtin_proc(Token *token)
-{
-    return TokenOdinKind_len <= token->sub_kind &&
-        token->sub_kind <= TokenOdinKind_card;
-}
+// @todo(tyler): Scoped notes by package
 
 function Code_Index_Note_Kind odin_ident_note(Code_Index_File *index, Generic_Parse_State *state, Token *ident)
 {

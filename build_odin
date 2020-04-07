@@ -1,7 +1,9 @@
 #! /usr/bin/env bash
 
-./custom/bin/build_one_time.sh ./custom/languages/4coder_odin_lexer_gen.cpp
+LANG=${1:-odin}
+
+./custom/bin/build_one_time.sh ./custom/languages/${LANG}/lexer_gen.cpp
 ./one_time
 rm ./one_time
 
-./custom/bin/buildsuper_x64-linux.sh
+# ./custom/bin/buildsuper_x64-linux.sh

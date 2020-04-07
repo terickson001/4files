@@ -14,10 +14,9 @@
 
 #include "generated/managed_id_metadata.cpp"
 
-#include "4coder_terickson_types.cpp"
-#include "generated/lexer_odin.h"
-#include "generated/lexer_odin.cpp"
-#include "languages/4coder_terickson_odin.cpp"
+#include "languages/cpp/cpp.cpp"
+#include "languages/odin/odin.cpp"
+#include "languages/glsl/glsl.cpp"
 #include "4coder_terickson_language.cpp"
 #include "4coder_terickson_code_index.cpp"
 #include "4coder_terickson_highlight.cpp"
@@ -30,7 +29,8 @@
 global Arena *tc_global_arena = {};
 
 void
-custom_layer_init(Application_Links *app){
+custom_layer_init(Application_Links *app)
+{
     Thread_Context *tctx = get_thread_context(app);
     
     // NOTE(allen): setup for default framework

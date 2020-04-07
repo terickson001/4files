@@ -33,50 +33,6 @@ function b32 tc_generic_parse_full_input_breaks(Code_Index_File *index, Generic_
         {
             generic_parse_inc(state);
         }
-        /*
-                else if (*lex_kind_ptr == LEXER_CPP) {
-                    if (token->sub_kind == TokenCppKind_Struct ||
-                        token->sub_kind == TokenCppKind_Union ||
-                        token->sub_kind == TokenCppKind_Enum){
-                        cpp_parse_type_structure(index, state, 0);
-                    }
-                    else if (token->sub_kind == TokenCppKind_Typedef) {
-                        cpp_parse_type_def(index, state, 0);
-                    }
-                    else if (token->sub_kind == TokenCppKind_Identifier) {
-                        cpp_parse_function(index, state, 0);
-                    }
-                    else {
-                        generic_parse_inc(state);
-                    }
-                }
-                else if (*lex_kind_ptr == LEXER_ODIN)
-                {
-                                if (token->sub_kind == TokenOdinKind_Identifier)
-                                {
-                                    generic_parse_inc(state);
-                                    generic_parse_skip_soft_tokens(index, state);
-                                    Token *peek = token_it_read(&state->it);
-                                    Token *reset = peek;
-                                    state->it = token_iterator(state->it.user_id, state->it.tokens, state->it.count, token);
-                                    
-                                    if (peek->sub_kind == TokenOdinKind_ColonColon)
-                                        odin_parse_decl(index, state, 0, token);
-                                    else
-                                        generic_parse_inc(state);
-                                }
-                                else
-                                {
-                                    generic_parse_inc(state);
-                                }
-                                 
-                    if (!odin_try_index(index, state, token))
-                        generic_parse_inc(state);
-                }
-                else{
-                    generic_parse_inc(state);
-                }
-                 */
         
         i64 index = token_it_index(&state->it);
         if (index >= one_past_last_index){
