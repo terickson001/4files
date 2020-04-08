@@ -4,6 +4,7 @@ struct Language
     String_Const_u8 name;
     String_Const_u8 ext_string;
     char **token_kind_names;
+    String_Const_u8 *comment_delims;
     // @note(tyler): These are required for a cancellable lexer,
     //               but the `Lex_State_{}` is specific to each language
     /*
@@ -23,6 +24,7 @@ struct Language
 SCu8(PRETTY), \
 SCu8(EXT), \
 token_##NAME##_kind_names, \
+&NAME##_comment_delims[0], \
 lex_full_input_##NAME, \
 NAME##_try_index, \
 NAME##_get_token_color, \
@@ -129,4 +131,115 @@ CUSTOM_DOC("Print the language for the current buffer.")
     
     Language *lang = *buffer_get_language(app, buffer);
     print_message(app, push_stringf(scratch, "Language is set to %.*s\n", string_expand(lang->name)));
+}
+
+function b32 language_line_comment_starts_at_position(Application_Links *app, Buffer_ID buffer, i64 pos, Language *lang)
+{
+    b32 already_has_comment = false;
+    u8 check_buffer[64] = {0};
+    if (buffer_read_range(app, buffer, Ii64(pos, pos + lang->comment_delims[0].size), check_buffer)) {
+        print_message(app, SCu8(check_buffer));
+        if (string_match(SCu8(check_buffer), lang->comment_delims[0]))
+            already_has_comment = true;
+    }
+    return(already_has_comment);
+}
+
+CUSTOM_COMMAND_SIG(language_comment_line)
+CUSTOM_DOC("Comment the current line with the current language's delimeters.")
+{
+    View_ID view = get_active_view(app, Access_ReadWriteVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    i64 pos = get_start_of_line_at_cursor(app, view, buffer);
+    Language *lang = *buffer_get_language(app, buffer);
+    b32 already_has_comment = language_line_comment_starts_at_position(app, buffer, pos, lang);
+    if (!already_has_comment)
+        buffer_replace_range(app, buffer, Ii64(pos), lang->comment_delims[0]);
+}
+
+
+CUSTOM_COMMAND_SIG(language_uncomment_line)
+CUSTOM_DOC("Comment the current line with the current language's delimeters.")
+{
+    View_ID view = get_active_view(app, Access_ReadWriteVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    i64 pos = get_start_of_line_at_cursor(app, view, buffer);
+    Language *lang = *buffer_get_language(app, buffer);
+    b32 already_has_comment = language_line_comment_starts_at_position(app, buffer, pos, lang);
+    if (already_has_comment)
+        buffer_replace_range(app, buffer, Ii64(pos, pos + lang->comment_delims[0].size), string_u8_empty);
+}
+
+CUSTOM_COMMAND_SIG(language_comment_line_toggle)
+CUSTOM_DOC("Comment the current line with the current language's delimeters.")
+{
+    View_ID view = get_active_view(app, Access_ReadWriteVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    i64 pos = get_start_of_line_at_cursor(app, view, buffer);
+    Language *lang = *buffer_get_language(app, buffer);
+    b32 already_has_comment = language_line_comment_starts_at_position(app, buffer, pos, lang);
+    if (already_has_comment)
+        buffer_replace_range(app, buffer, Ii64(pos, pos + lang->comment_delims[0].size), string_u8_empty);
+    else
+        buffer_replace_range(app, buffer, Ii64(pos), lang->comment_delims[0]);
+}
+
+CUSTOM_COMMAND_SIG(language_comment_range)
+CUSTOM_DOC("Comment the current range according the current language's block comment delimiters.")
+{
+    View_ID view = get_active_view(app, Access_ReadWriteVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    Language *lang = *buffer_get_language(app, buffer);
+    
+    String_Const_u8 begin = lang->comment_delims[1];
+    String_Const_u8 end   = lang->comment_delims[2];
+    
+    Range_i64 range = get_view_range(app, view);
+    Range_i64 lines = get_line_range_from_pos_range(app, buffer, range);
+    range = get_pos_range_from_line_range(app, buffer, lines);
+    
+    Scratch_Block scratch(app);
+    
+    b32 min_line_blank = line_is_valid_and_blank(app, buffer, lines.min);
+    b32 max_line_blank = line_is_valid_and_blank(app, buffer, lines.max);
+    
+    if ((lines.min < lines.max) || (!min_line_blank)){
+        String_Const_u8 begin_str = {};
+        String_Const_u8 end_str = {};
+        
+        i64 min_adjustment = 0;
+        i64 max_adjustment = 0;
+        
+        if (min_line_blank){
+            begin_str = push_u8_stringf(scratch, "\n%.*s", string_expand(begin));
+            min_adjustment += 1;
+        }
+        else{
+            begin_str = push_u8_stringf(scratch, "%.*s\n", string_expand(begin));
+        }
+        if (max_line_blank){
+            end_str = push_u8_stringf(scratch, "%.*s\n", string_expand(end));
+        }
+        else{
+            end_str = push_u8_stringf(scratch, "\n%.*s", string_expand(end));
+            max_adjustment += 1;
+        }
+        
+        max_adjustment += begin_str.size;
+        Range_i64 new_pos = Ii64(range.min + min_adjustment, range.max + max_adjustment);
+        
+        History_Group group = history_group_begin(app, buffer);
+        buffer_replace_range(app, buffer, Ii64(range.min), begin_str);
+        buffer_replace_range(app, buffer, Ii64(range.max + begin_str.size), end_str);
+        history_group_end(group);
+        
+        set_view_range(app, view, new_pos);
+    }
+    else{
+        String_Const_u8 str = push_u8_stringf(scratch, "%.*s\n\n%.*s", string_expand(begin), string_expand(end));
+        buffer_replace_range(app, buffer, range, str);
+        i64 center_pos = range.min + begin.size + 1;
+        view_set_cursor_and_preferred_x(app, view, seek_pos(center_pos));
+        view_set_mark(app, view, seek_pos(center_pos));
+    }
 }

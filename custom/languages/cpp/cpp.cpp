@@ -50,3 +50,5 @@ FColor cpp_get_token_color(Token token)
 
 // Jump
 Parsed_Jump cpp_parse_jump_location(String_Const_u8 line) { return parse_jump_location(line); }
+
+String_Const_u8 cpp_comment_delims[3] = {SCu8("//"), SCu8("/*"), SCu8("*/")};

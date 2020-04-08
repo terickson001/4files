@@ -87,3 +87,5 @@ function Parsed_Jump odin_parse_jump_location(String_Const_u8 line)
     
     return jump;
 }
+
+String_Const_u8 odin_comment_delims[3] = {SCu8("//"), SCu8("/*"), SCu8("*/")};
