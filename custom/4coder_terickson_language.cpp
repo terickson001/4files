@@ -243,3 +243,16 @@ CUSTOM_DOC("Comment the current range according the current language's block com
         view_set_mark(app, view, seek_pos(center_pos));
     }
 }
+
+function i64 *get_indentation_array_from_index(Application_Links *app, Arena *arena, Buffer_ID buffer, Range_i64 lines, Indent_Flag flags, i32 tab_width, i32 indent_width)
+{
+    Code_Index_File *file = code_index_get_file(buffer);
+    if (file == 0)
+        return 0;
+    
+    i64 count = lines.max - lines.min + 1;
+    i64 *indentations = push_array(arena, i64, count);
+    i64 *shifted_indentations = indentations - lines.first;
+    block_fill_u64(indentations, sizeof(*indentations)*count, (u64)(-1));
+    
+}
