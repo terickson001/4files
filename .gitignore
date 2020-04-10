@@ -1,9 +1,13 @@
 4ed
 4ed_app.so
+custom_4coder.so
+4ed.exe
+4ed_app.dll
+custom_4coder.dll
+
 LICENSE.txt
 README.txt
 changes.txt
-custom_4coder.so
 fonts
 project.4coder
 
