@@ -16,7 +16,7 @@ tc_setup_mapping(Mapping *mapping, i64 global_id, i64 file_id, i64 code_id){
      Bind(interactive_open_or_new,       KeyCode_O, KeyCode_Control);
      Bind(open_in_other,                 KeyCode_O, KeyCode_Alt);
      Bind(interactive_kill_buffer,       KeyCode_K, KeyCode_Control);
-     Bind(tc_interactive_switch_buffer,     KeyCode_I, KeyCode_Control);
+     Bind(tc_interactive_switch_buffer,  KeyCode_I, KeyCode_Control);
      Bind(project_go_to_root_directory,  KeyCode_H, KeyCode_Control);
      Bind(save_all_dirty_buffers,        KeyCode_S, KeyCode_Control, KeyCode_Shift);
      Bind(change_to_build_panel,         KeyCode_Period, KeyCode_Alt);
@@ -133,6 +133,7 @@ tc_setup_mapping(Mapping *mapping, i64 global_id, i64 file_id, i64 code_id){
      Bind(language_comment_range,     KeyCode_R, KeyCode_Alt);
      Bind(write_todo,                 KeyCode_T, KeyCode_Alt);
      Bind(write_note,                 KeyCode_Y, KeyCode_Alt);
+     Bind(jump_to_definition,         KeyCode_J, KeyCode_Alt);
      Bind(list_all_locations_of_type_definition,               KeyCode_D, KeyCode_Alt);
      Bind(list_all_locations_of_type_definition_of_identifier, KeyCode_T, KeyCode_Alt, KeyCode_Shift);
      Bind(open_long_braces,           KeyCode_LeftBracket, KeyCode_Control);

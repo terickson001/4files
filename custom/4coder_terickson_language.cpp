@@ -33,11 +33,12 @@ NAME##_parse_jump_location \
 
 global Language *last_compiled_language = 0;
 global Language languages[] = {
-     LANG("CPP",  cpp,  ".c.cpp.h.hpp.cc"),
-     LANG("Odin", odin, ".odin"),
-     LANG("GLSL", glsl, ".glsl.vert.frag.geom.tess.vs.fs.gs.ts.compute"),
-     LANG("GAS",  gas,  ".S"),
-     LANG("NASM", nasm, ".asm")
+     LANG("CPP",    cpp,  ".c.cpp.h.hpp.cc"),
+     LANG("Odin",   odin, ".odin"),
+     LANG("GLSL",   glsl, ".glsl.vert.frag.geom.tess.vs.fs.gs.ts.compute"),
+     LANG("GAS",    gas,  ".S"),
+     LANG("NASM",   nasm, ".asm"),
+     LANG("4Coder", cpp,  ".4coder")
 };
 
 #undef LANG

@@ -39,32 +39,27 @@ function b32 nasm_try_index(Code_Index_File *index, Generic_Parse_State *state)
      }
      
      Token *token = token_it_read(&state->it);
-     if (token->kind == TokenBaseKind_Identifier)
+     if (token->kind == TokenBaseKind_Identifier &&
+     nasm_is_first_token(index, state))
      {
-         b32 first_of_line = nasm_is_first_token(index, state);
-         if (!first_of_line)
-         return false;
          generic_parse_inc(state);
          generic_parse_skip_soft_tokens(index, state);
          Token *peek = token_it_read(&state->it);
          
          if (peek->sub_kind == TokenNasmKind_Colon)
          {
-             /*
-             Code_Index_Nest *prev_scope = index->nest_list.last;
-             prev_scope->close = Ii64(token-1);
-             
-             Code_Index_Nest *new_scope = push_array_zero(state->arena, Code_Index_Nest, 1);
-             new_scope->kind  = CodeIndexNest_Scope;
-             new_scope->open  = Ii64(peek);
-             new_scope->close = Ii64(max_i64);
-             code_index_push_nest(&index->nest_list, new_scope);
-             */
              nasm_break_scope(index, state, token);
              index_new_note(index, state, Ii64(token), CodeIndexNote_Function, 0);
              
              generic_parse_inc(state);
              return true;
+         }
+         else
+         {
+             state->it = token_iterator(state->it.user_id,
+                                        state->it.tokens,
+                                        state->it.count,
+             token);
          }
      }
      else if (token->kind == TokenBaseKind_Preprocessor &&
@@ -72,6 +67,6 @@ function b32 nasm_try_index(Code_Index_File *index, Generic_Parse_State *state)
      {
          nasm_break_scope(index, state, token);
      }
-     state->it = token_iterator(state->it.user_id, state->it.tokens, state->it.count, token);
+     
      return false;
 }
