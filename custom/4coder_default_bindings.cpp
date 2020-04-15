@@ -18,6 +18,7 @@
 #include "languages/odin/odin.cpp"
 #include "languages/glsl/glsl.cpp"
 #include "languages/gas/gas.cpp"
+#include "languages/nasm/nasm.cpp"
 #include "4coder_terickson_language.cpp"
 #include "4coder_terickson_code_index.cpp"
 #include "4coder_terickson_highlight.cpp"

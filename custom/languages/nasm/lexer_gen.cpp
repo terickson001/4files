@@ -1,6 +1,6 @@
 
-#define LANG_NAME_LOWER gas
-#define LANG_NAME_CAMEL Gas
+#define LANG_NAME_LOWER nasm
+#define LANG_NAME_CAMEL Nasm
 
 #include "lexer_generator/4coder_lex_gen_main.cpp"
 
@@ -14,7 +14,6 @@ internal void build_language_model(void)
      
      sm_select_base_kind(TokenBaseKind_Comment);
      sm_direct_token_kind("LineComment");
-     sm_direct_token_kind("BlockComment");
      
      sm_select_base_kind(TokenBaseKind_Whitespace);
      
@@ -49,149 +48,71 @@ internal void build_language_model(void)
      sm_op("-");
      sm_op("~");
      
-     // GAS Keywords
+     // NASM Keywords
      Keyword_Set *main_keys = sm_begin_key_set("main_keys");
      
      sm_select_base_kind(TokenBaseKind_Keyword);
-     
-     sm_key("Abort");
-     sm_key("ABORT");
-     sm_key("Align");
-     sm_key("Altmacro");
-     sm_key("Ascii");
-     sm_key("Asciz");
-     sm_key("Balign");
-     sm_key("Byte");
-     sm_key("Comm");
-     
-     sm_key("Data");
-     sm_key("Def");
-     sm_key("Desc");
-     sm_key("Dim");
-     sm_key("Double");
-     sm_key("Eject");
-     
-     sm_key("Else");
-     sm_key("Elseif");
-     sm_key("End");
-     sm_key("Endef");
-     sm_key("Endfunc");
-     sm_key("Endif");
-     
-     sm_key("Equ");
-     sm_key("Equiv");
-     sm_key("Eqv");
-     
-     sm_key("Err");
-     sm_key("Error");
-     sm_key("Exitm");
-     sm_key("Extern");
-     sm_key("Fail");
-     
-     sm_key("File");
-     sm_key("Fill");
-     sm_key("Float");
-     sm_key("Func");
-     
+     sm_key("absolute");
+     sm_key("bits");
+     sm_key("common");
+     sm_key("cpu");
+     sm_key("debug");
+     sm_key("default");
+     sm_key("extern");
+     sm_key("float");
      sm_key("global");
-     sm_key("Hidden");
-     sm_key("hword");
-     sm_key("Ident");
+     sm_key("list");
+     sm_key("section");
+     sm_key("segment");
+     sm_key("warning");
+     sm_key("sectalign");
+     sm_key("export");
+     sm_key("group");
+     sm_key("import");
+     sm_key("library");
+     sm_key("map");
+     sm_key("module");
+     sm_key("org");
+     sm_key("osabi");
+     sm_key("safeseh");
+     sm_key("uppercase");
      
-     sm_key("If");
-     sm_key("ifb");
-     sm_key("ifc");
-     sm_key("ifeq");
-     sm_key("ifeqs");
+     sm_key("istruc");
+     sm_key("at");
+     sm_key("iend");
+     sm_key("align");
+     sm_key("alignb");
      
-     sm_key("ifge");
-     sm_key("ifle");
-     sm_key("ifgt");
-     sm_key("iflt");
+     sm_key("struc");
+     sm_key("endstruc");
+     sm_key("__LINE__");
+     sm_key("__FILE__");
      
-     sm_key("ifnb");
-     sm_key("ifnc");
-     sm_key("ifndef");
-     sm_key("ifdef");
-     sm_key("ifnotdef");
-     sm_key("ifne");
-     sm_key("ifnes");
+     sm_key("__NASM_MAJOR__");
+     sm_key("__NASM_MINOR__");
+     sm_key("__NASM_SUBMINOR__");
      
-     sm_key("Incbin");
-     sm_key("Include");
-     sm_key("Int");
+     sm_key("___NASM_PATCHLEVEL__");
+     sm_key("__NASM_VERSION_ID__");
+     sm_key("__NASM_VER__");
      
-     sm_key("Internal");
-     sm_key("Irp");
-     sm_key("Irpc");
-     sm_key("Lcomm");
-     sm_key("Lflags");
-     sm_key("Line");
+     sm_key("__BITS__");
+     sm_key("__OUTPUT_FORMAT__");
+     sm_key("__DATE__");
+     sm_key("__TIME__");
+     sm_key("__DATE_NUM__");
      
-     sm_key("Linkonce");
-     sm_key("List");
-     sm_key("Ln");
+     sm_key("__TIME_NUM__");
+     sm_key("__UTC_DATE__");
+     sm_key("__UTC_TIME__");
+     sm_key("__UTC_DATE_NUM__");
      
-     sm_key("Long");
-     sm_key("Macro");
-     sm_key("MRI");
-     sm_key("Noaltmacro");
+     sm_key("__UTC_TIME_NUM__");
+     sm_key("__POSIX_TIME__");
+     sm_key("__PASS__");
+     sm_key("SECTALIGN");
      
-     sm_key("Nolist");
-     sm_key("Octa");
-     sm_key("Org");
-     sm_key("P2align");
-     sm_key("PopSection");
-     sm_key("Previous");
-     
-     sm_key("Print");
-     sm_key("Protected");
-     sm_key("Psize");
-     sm_key("Purgem");
-     sm_key("PushSection");
-     
-     sm_key("Quad");
-     sm_key("Rept");
-     sm_key("Sbttl");
-     sm_key("Scl");
-     sm_key("Section");
-     sm_key("Set");
-     sm_key("Short");
-     
-     sm_key("Single");
-     sm_key("Size");
-     sm_key("Skip");
-     sm_key("Sleb128");
-     sm_key("Space");
-     sm_key("Stab");
-     sm_key("String");
-     
-     sm_key("Struct");
-     sm_key("SubSection");
-     sm_key("Symver");
-     sm_key("Tag");
-     sm_key("Text");
-     sm_key("Title");
-     sm_key("Type");
-     
-     sm_key("Uleb128");
-     sm_key("Val");
-     sm_key("Version");
-     sm_key("VTableEntry");
-     sm_key("VTableInherit");
-     
-     sm_key("Warning");
-     sm_key("Weak");
-     sm_key("Weakref");
-     sm_key("Word");
-     sm_key("Deprecated");
-     
-     sm_select_base_kind(TokenBaseKind_Identifier);
-     sm_key_fallback("Identifier");
-     
-     // CPP Preprocess Directives
-     Keyword_Set *register_set = sm_begin_key_set("registers");
-     
+     // NASM Registers
      sm_select_base_kind(TokenBaseKind_Keyword);
      sm_key("rax");
      sm_key("eax");
@@ -341,6 +262,123 @@ internal void build_language_model(void)
      sm_key("xmm14");
      sm_key("xmm15");
      
+     sm_select_base_kind(TokenBaseKind_Identifier);
+     sm_key_fallback("Identifier");
+     
+     // NASM Preprocessor directives
+     Keyword_Set *pp_directive_set = sm_begin_key_set("pp_directives");
+     
+     sm_select_base_kind(TokenBaseKind_Preprocessor);
+     sm_key("elif");
+     sm_key("elifn");
+     sm_key("elifctx");
+     sm_key("elifnctx");
+     sm_key("elifdef");
+     sm_key("elifndef");
+     
+     sm_key("elifempty");
+     sm_key("elifnempty");
+     sm_key("elifenv");
+     sm_key("elifnenv");
+     sm_key("elifid");
+     
+     sm_key("elifnid");
+     sm_key("elifidn");
+     sm_key("elifnidn");
+     sm_key("elifidni");
+     sm_key("elifnidni");
+     
+     sm_key("elifmacro");
+     sm_key("elifnmacro");
+     sm_key("elifnum");
+     sm_key("elifnnum");
+     sm_key("elifstr");
+     
+     sm_key("elifnstr");
+     sm_key("eliftoken");
+     sm_key("elifntoken");
+     sm_key("if");
+     sm_key("ifn");
+     sm_key("ifctx");
+     
+     sm_key("ifnctx");
+     sm_key("ifdef");
+     sm_key("ifndef");
+     sm_key("ifempty");
+     sm_key("ifnempty");
+     sm_key("ifenv");
+     
+     sm_key("ifnenv");
+     sm_key("ifid");
+     sm_key("ifnid");
+     sm_key("ifidn");
+     sm_key("ifnidn");
+     sm_key("ifidni");
+     sm_key("ifnidni");
+     
+     sm_key("ifmacro");
+     sm_key("ifnmacro");
+     sm_key("ifnum");
+     sm_key("ifnnum");
+     sm_key("ifstr");
+     sm_key("ifnstr");
+     
+     sm_key("iftoken");
+     sm_key("ifntoken");
+     sm_key("arg");
+     sm_key("assign");
+     sm_key("clear");
+     sm_key("define");
+     
+     sm_key("defstr");
+     sm_key("deftok");
+     sm_key("depend");
+     sm_key("else");
+     sm_key("endif");
+     sm_key("endm");
+     sm_key("endmacro");
+     
+     sm_key("endrep");
+     sm_key("error");
+     sm_key("exitmacro");
+     sm_key("exitrep");
+     sm_key("fatal");
+     sm_key("iassign");
+     
+     sm_key("idefine");
+     sm_key("idefstr");
+     sm_key("ideftok");
+     sm_key("imacro");
+     sm_key("include");
+     sm_key("irmacro");
+     
+     sm_key("ixdefine");
+     sm_key("line");
+     sm_key("local");
+     sm_key("macro");
+     sm_key("pathsearch");
+     sm_key("pop");
+     sm_key("push");
+     
+     sm_key("rep");
+     sm_key("repl");
+     sm_key("rmacro");
+     sm_key("rotate");
+     sm_key("stacksize");
+     sm_key("strcat");
+     
+     sm_key("strlen");
+     sm_key("substr");
+     sm_key("undef");
+     sm_key("unimacro");
+     sm_key("unmacro");
+     sm_key("use");
+     
+     sm_key("warning");
+     sm_key("xdefine");
+     sm_key("comment");
+     sm_key("endcomment");
+     
      // State Machine
      State *root = sm_begin_state_machine();
      
@@ -376,19 +414,11 @@ internal void build_language_model(void)
      AddState(string);
      AddState(string_esc);
      
-     AddState(comment_block);
-     AddState(comment_block_first);
-     AddState(comment_block_try_close);
      AddState(comment_line);
      
-     AddState(keyword_rest);
-     AddState(keyword_emit);
-     
-     AddState(register_first);
-     AddState(register_rest);
-     AddState(register_emit);
-     
-     AddState(value_first);
+     AddState(preprocessor_first);
+     AddState(preprocessor_rest);
+     AddState(preprocessor_emit);
      
      Operator_Set *main_ops_without_dot_or_slash = smo_copy_op_set(main_ops);
      smo_remove_ops_with_prefix(main_ops_without_dot_or_slash, ".");
@@ -407,6 +437,7 @@ internal void build_language_model(void)
          sm_emit_handler_direct("EOF");
          sm_case_eof(emit);
      }
+     sm_case("%", preprocessor_first);
      
      sm_case("abcdefghijklmnopqrstuvwxyz"
              "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -417,11 +448,10 @@ internal void build_language_model(void)
      sm_case(" \r\n\t\f\v", whitespace);
      
      sm_case(".", operator_or_fnumber_dot);
-     sm_case("/", comment_block_first);
      {
          Character_Set *char_set = smo_new_char_set();
          smo_char_set_union_ops_firsts(char_set, main_ops_without_dot_or_slash);
-         smo_char_set_remove(char_set, "./");
+         smo_char_set_remove(char_set, ".");
          char *char_set_array = smo_char_set_get_array(char_set);
          State *operator_state = smo_op_set_lexer_root(main_ops_without_dot_or_slash, root, "LexError");
          sm_case_peek(char_set_array, operator_state);
@@ -433,9 +463,7 @@ internal void build_language_model(void)
      sm_case("\"", string);
      sm_case("\'", character);
      
-     sm_case("%", register_first);
-     sm_case("$", value_first);
-     sm_case("#", comment_line);
+     sm_case(";", comment_line);
      {
          Emit_Rule *emit = sm_emit_rule();
          sm_emit_handler_direct("LexError");
@@ -453,7 +481,7 @@ internal void build_language_model(void)
      sm_case(utf8, identifier);
      {
          Emit_Rule *emit = sm_emit_rule();
-         sm_emit_handler_direct("Identifier");
+         sm_emit_handler_keys(main_keys);
          sm_fallback_peek(emit);
      }
      ////
@@ -470,34 +498,14 @@ internal void build_language_model(void)
      
      sm_select_state(operator_or_fnumber_dot);
      sm_case("0123456789", fnumber_decimal);
-     sm_delim_mark_first();
      sm_case_peek("abcdefghijklmnopqrstuvwxyz"
                   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                   "_",
-     keyword_rest);
-     sm_case_peek(utf8, keyword_rest);
+     identifier);
+     sm_case_peek(utf8, identifier);
      {
          Emit_Rule *emit = sm_emit_rule();
          sm_emit_handler_direct("Dot");
-         sm_fallback_peek(emit);
-     }
-     
-     ////
-     
-     sm_select_state(keyword_rest);
-     sm_case("abcdefghijklmnopqrstuvwxyz"
-             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-     "_", keyword_rest);
-     sm_case(utf8, keyword_rest);
-     sm_fallback_peek(keyword_emit);
-     
-     ////
-     
-     sm_select_state(keyword_emit);
-     sm_delim_mark_one_past_last();
-     {
-         Emit_Rule *emit = sm_emit_rule();
-         sm_emit_handler_keys_delim(main_keys);
          sm_fallback_peek(emit);
      }
      
@@ -625,45 +633,32 @@ internal void build_language_model(void)
      
      ////
      
-     sm_select_state(register_first);
+     
+     sm_select_state(preprocessor_first);
      sm_delim_mark_first();
-     sm_fallback_peek(register_rest);
+     sm_fallback_peek(preprocessor_rest);
      
      ////
      
-     sm_select_state(register_rest);
+     sm_select_state(preprocessor_rest);
      sm_case("abcdefghijklmnopqrstuvwxyz"
              "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
              "0123456789",
-     register_rest);
-     sm_fallback_peek(register_emit);
+     preprocessor_rest);
+     sm_fallback_peek(preprocessor_emit);
      
      ////
      
-     sm_select_state(register_emit);
+     sm_select_state(preprocessor_emit);
      sm_delim_mark_one_past_last();
      {
          Emit_Rule *emit = sm_emit_rule();
-         sm_emit_handler_keys_delim(register_set);
+         sm_emit_handler_keys_delim(pp_directive_set);
          sm_fallback_peek(emit);
      }
+     
      
      ///
-     
-     sm_select_state(value_first);
-     sm_case("123456789", number);
-     sm_case("0", znumber);
-     sm_case("abcdefghijklmnopqrstuvwxyz"
-             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-             "_",
-     identifier);
-     {
-         Emit_Rule *emit = sm_emit_rule();
-         sm_emit_handler_direct("LexError");
-         sm_fallback_peek(emit);
-     }
-     
-     ////
      
      sm_select_state(character);
      sm_set_flag(is_char, true);
@@ -701,43 +696,6 @@ internal void build_language_model(void)
          sm_case_eof_peek(emit);
      }
      sm_fallback(string);
-     
-     ////
-     
-     sm_select_state(comment_block_first);
-     sm_case("*", comment_block);
-     {
-         Emit_Rule *emit = sm_emit_rule();
-         sm_emit_handler_direct("LexError");
-         sm_fallback(emit);
-     }
-     
-     ////
-     
-     sm_select_state(comment_block);
-     sm_case("*", comment_block_try_close);
-     {
-         Emit_Rule *emit = sm_emit_rule();
-         sm_emit_handler_direct("BlockComment");
-         sm_case_eof_peek(emit);
-     }
-     sm_fallback(comment_block);
-     
-     ////
-     
-     sm_select_state(comment_block_try_close);
-     {
-         Emit_Rule *emit = sm_emit_rule();
-         sm_emit_handler_direct("BlockComment");
-         sm_case("/", emit);
-     }
-     {
-         Emit_Rule *emit = sm_emit_rule();
-         sm_emit_handler_direct("BlockComment");
-         sm_case_eof_peek(emit);
-     }
-     sm_case("*", comment_block_try_close);
-     sm_fallback(comment_block);
      
      ////
      

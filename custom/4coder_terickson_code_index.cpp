@@ -1,3 +1,19 @@
+function b32 tc_generic_parse_scope_paren(Code_Index_File *index, Generic_Parse_State *state)
+{
+     Token *token = token_it_read(&state->it);
+     if (token->kind == TokenBaseKind_ScopeOpen) {
+         Code_Index_Nest *nest = generic_parse_scope(index, state);
+         code_index_push_nest(&index->nest_list, nest);
+         return true;
+     }
+     else if (token->kind == TokenBaseKind_ParentheticalOpen) {
+         Code_Index_Nest *nest = generic_parse_paren(index, state);
+         code_index_push_nest(&index->nest_list, nest);
+         return true;
+     }
+     return false;
+}
+
 function b32 tc_generic_parse_full_input_breaks(Code_Index_File *index, Generic_Parse_State *state, i32 limit)
 {
      b32 result = false;
@@ -16,22 +32,9 @@ function b32 tc_generic_parse_full_input_breaks(Code_Index_File *index, Generic_
              break;
          }
          
-         if (token->kind == TokenBaseKind_Preprocessor) {
-             Code_Index_Nest *nest = generic_parse_preprocessor(index, state);
-             code_index_push_nest(&index->nest_list, nest);
-         }
-         else if (token->kind == TokenBaseKind_ScopeOpen) {
-             Code_Index_Nest *nest = generic_parse_scope(index, state);
-             code_index_push_nest(&index->nest_list, nest);
-         }
-         else if (token->kind == TokenBaseKind_ParentheticalOpen) {
-             Code_Index_Nest *nest = generic_parse_paren(index, state);
-             code_index_push_nest(&index->nest_list, nest);
-         }
-         else if (!(*language)->try_index(index, state))
-         {
-             generic_parse_inc(state);
-         }
+         if      ((*language)->try_index(index, state));
+         else if (tc_generic_parse_scope_paren(index, state));
+         else    generic_parse_inc(state);
          
          i64 index = token_it_index(&state->it);
          if (index >= one_past_last_index){

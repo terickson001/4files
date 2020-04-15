@@ -36,7 +36,8 @@ global Language languages[] = {
      LANG("CPP",  cpp,  ".c.cpp.h.hpp.cc"),
      LANG("Odin", odin, ".odin"),
      LANG("GLSL", glsl, ".glsl.vert.frag.geom.tess.vs.fs.gs.ts.compute"),
-     LANG("GAS",  gas,  ".S")
+     LANG("GAS",  gas,  ".S"),
+     LANG("NASM", nasm, ".asm")
 };
 
 #undef LANG
