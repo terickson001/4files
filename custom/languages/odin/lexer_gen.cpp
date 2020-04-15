@@ -46,8 +46,10 @@ internal void build_language_model(void)
     sm_direct_token_kind("KeywordAttribute");
     sm_direct_token_kind("KeywordDirective");
     
-    sm_select_base_kind(TokenBaseKind_Preprocessor);
-    sm_direct_token_kind("AttributeDelim");
+    sm_select_base_kind(TokenBaseKind_ParentheticalOpen);
+    sm_direct_token_kind("AttributeOpen");
+    sm_select_base_kind(TokenBaseKind_ParentheticalClose);
+    sm_direct_token_kind("AttributeClose");
     
     // Odin Operators
     Operator_Set *main_ops = sm_begin_op_set();
@@ -301,7 +303,7 @@ internal void build_language_model(void)
     
     Keyword_Set *directive_set = sm_begin_key_set("directives");
     
-    sm_select_base_kind(TokenBaseKind_Preprocessor);
+    sm_select_base_kind(TokenBaseKind_Keyword);
     
     sm_key("align");
     sm_key("packed");
@@ -325,7 +327,7 @@ internal void build_language_model(void)
     
     Keyword_Set *attribute_set = sm_begin_key_set("attributes");
     
-    sm_select_base_kind(TokenBaseKind_Preprocessor);
+    sm_select_base_kind(TokenBaseKind_Keyword);
     
     sm_key("builtin");
     sm_key("export");
@@ -357,7 +359,7 @@ internal void build_language_model(void)
     Flag *TRUE = sm_add_flag(FlagResetRule_KeepState);
     sm_flag_bind(is_attribute_block, TokenBaseFlag_PreprocessorBody);
     
-#define AddState(N) State *N = sm_add_state(#N)
+    #define AddState(N) State *N = sm_add_state(#N)
     
     AddState(identifier);
     AddState(whitespace);
@@ -420,9 +422,9 @@ internal void build_language_model(void)
     }
     
     sm_case("abcdefghijklmnopqrstuvwxyz"
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            "_$",
-            identifier);
+                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                 "_$",
+    identifier);
     sm_case(utf8, identifier);
     
     sm_case(" \r\n\t\f\v", whitespace);
@@ -460,10 +462,10 @@ internal void build_language_model(void)
     
     sm_select_state(identifier);
     sm_case("abcdefghijklmnopqrstuvwxyz"
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            "_$"
-            "0123456789",
-            identifier);
+                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                 "_$"
+                 "0123456789",
+    identifier);
     sm_case(utf8, identifier);
     {
         Emit_Rule *emit = sm_emit_rule();
@@ -670,9 +672,9 @@ internal void build_language_model(void)
     
     sm_select_state(attribute);
     sm_case("abcdefghijklmnopqrstuvwxyz"
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            "_",
-            attribute);
+                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                 "_",
+    attribute);
     sm_fallback_peek(attribute_emit);
     
     ////
@@ -691,7 +693,7 @@ internal void build_language_model(void)
     sm_set_flag(is_attribute_block, true);
     {
         Emit_Rule *emit = sm_emit_rule();
-        sm_emit_handler_direct("AttributeDelim");
+        sm_emit_handler_direct("AttributeOpen");
         sm_fallback_peek(emit);
     }
     
@@ -701,10 +703,10 @@ internal void build_language_model(void)
     sm_set_flag(is_attribute_block, false);
     {
         Emit_Rule *emit = sm_emit_rule();
-        sm_emit_handler_direct("AttributeDelim");
+        sm_emit_handler_direct("AttributeClose");
         sm_fallback_peek(emit);
     }
-    sm_fallback(root);
+    // sm_fallback(root);
     
     ////
     
@@ -716,9 +718,9 @@ internal void build_language_model(void)
     
     sm_select_state(directive);
     sm_case("abcdefghijklmnopqrstuvwxyz"
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            "_",
-            directive);
+                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                 "_",
+    directive);
     sm_fallback_peek(directive_emit);
     
     ////

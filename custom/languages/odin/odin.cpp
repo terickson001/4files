@@ -5,15 +5,26 @@
 function b32 odin_is_builtin_type(Token *token)
 {
     return TokenOdinKind_byte <= token->sub_kind &&
-        token->sub_kind <= TokenOdinKind_u128be;
+    token->sub_kind <= TokenOdinKind_u128be;
 }
 
 function b32 odin_is_builtin_proc(Token *token)
 {
     return TokenOdinKind_len <= token->sub_kind &&
-        token->sub_kind <= TokenOdinKind_card;
+    token->sub_kind <= TokenOdinKind_card;
 }
 
+function b32 odin_is_directive(Token *token)
+{
+    return TokenOdinKind_align <= token->sub_kind &&
+    token->sub_kind <= TokenOdinKind_partial;
+}
+
+function b32 odin_is_attribute(Token *token)
+{
+    return TokenOdinKind_builtin <= token->sub_kind &&
+    token->sub_kind <= TokenOdinKind_thread_local;
+}
 // Index
 #include "languages/odin/index.cpp"
 
@@ -28,7 +39,10 @@ static FColor odin_get_token_color(Token token)
         } break;
         case TokenBaseKind_Keyword:
         {
-            color = defcolor_keyword; break;
+            if (odin_is_directive(&token) || odin_is_attribute(&token))
+            color = defcolor_preproc;
+            else
+            color = defcolor_keyword;
         } break;
         case TokenBaseKind_Comment:
         {
@@ -49,9 +63,9 @@ static FColor odin_get_token_color(Token token)
         case TokenBaseKind_Identifier:
         {
             if (odin_is_builtin_type(&token))
-                color = defcolor_type_name;
+            color = defcolor_type_name;
             else if (odin_is_builtin_proc(&token))
-                color = defcolor_function_name;
+            color = defcolor_function_name;
         }break;
     }
     return(fcolor_id(color));
@@ -81,9 +95,9 @@ function Parsed_Jump odin_parse_jump_location(String_Const_u8 line)
     }
     
     if (!jump.success)
-        block_zero_struct(&jump);
+    block_zero_struct(&jump);
     else
-        jump.is_sub_jump = false; // @note(tyler): What is this for?
+    jump.is_sub_jump = false; // @note(tyler): What is this for?
     
     return jump;
 }
