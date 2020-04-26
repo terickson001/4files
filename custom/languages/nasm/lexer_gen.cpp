@@ -544,9 +544,10 @@ internal void build_language_model(void)
     ////
     
     sm_select_state(number);
-    sm_case("0123456789", number);
+    sm_case("0123456789_", number);
     sm_case(".", fnumber_decimal);
     sm_case("Ee", fnumber_exponent);
+    sm_case("bh", number);
     {
         Emit_Rule *emit = sm_emit_rule();
         sm_emit_handler_direct("LiteralInteger");
@@ -561,6 +562,7 @@ internal void build_language_model(void)
     sm_case("Xx", number_hex_first);
     sm_case("Bb", number_bin_first);
     sm_case("Oo", number_oct);
+    sm_case("0123456789_", number);
     {
         Emit_Rule *emit = sm_emit_rule();
         sm_emit_handler_direct("LiteralInteger");
