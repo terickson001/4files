@@ -170,6 +170,7 @@ static void tc_render_buffer(Application_Links *app, View_ID view_id, Face_ID fa
         if (global_config.use_error_highlight){
             draw_jump_highlights(app, buffer, text_layout_id, compilation_buffer,
                                  fcolor_id(defcolor_highlight_junk));
+            tc_render_error_messages(app, buffer, compilation_buffer, active_view, text_layout_id);
         }
         
         // NOTE(allen): Search highlight

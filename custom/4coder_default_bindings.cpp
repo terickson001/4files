@@ -14,6 +14,8 @@
 
 #include "generated/managed_id_metadata.cpp"
 
+global Arena *tc_global_arena = {};
+
 #include "languages/cpp/cpp.cpp"
 #include "languages/odin/odin.cpp"
 #include "languages/glsl/glsl.cpp"
@@ -22,38 +24,39 @@
 
 #include "4coder_terickson_language.cpp"
 #include "4coder_terickson_code_index.cpp"
+#include "4coder_terickson_jump.cpp"
+#include "4coder_terickson_error_message.cpp"
 #include "4coder_terickson_highlight.cpp"
 #include "4coder_terickson_hooks.cpp"
 #include "4coder_terickson_project.cpp"
-#include "4coder_terickson_jump.cpp"
 #include "4coder_terickson_lists.cpp"
 #include "4coder_terickson_commands.cpp"
 #include "4coder_terickson_map.cpp"
 
-global Arena *tc_global_arena = {};
+
 
 void
 custom_layer_init(Application_Links *app)
 {
-     Thread_Context *tctx = get_thread_context(app);
-     
-     // NOTE(allen): setup for default framework
-     default_framework_init(app);
-     code_index_init();
-     
-     tc_global_arena = reserve_arena(app);
-     init_languages(app, tc_global_arena);
-     
-     // NOTE(allen): default hooks and command maps
-     set_all_default_hooks(app);
-     set_custom_hook(app, HookID_RenderCaller, tc_render_caller);
-     set_custom_hook(app, HookID_BeginBuffer, tc_begin_buffer);
-     set_custom_hook(app, HookID_BufferEditRange, tc_buffer_edit_range);
-     set_custom_hook(app, HookID_Tick, tc_tick);
-     
-     mapping_init(tctx, &framework_mapping);
-     // setup_default_mapping(&framework_mapping, mapid_global, mapid_file, mapid_code);
-     tc_setup_mapping(&framework_mapping, mapid_global, mapid_file, mapid_code);
+    Thread_Context *tctx = get_thread_context(app);
+    
+    // NOTE(allen): setup for default framework
+    default_framework_init(app);
+    code_index_init();
+    
+    tc_global_arena = reserve_arena(app);
+    init_languages(app, tc_global_arena);
+    
+    // NOTE(allen): default hooks and command maps
+    set_all_default_hooks(app);
+    set_custom_hook(app, HookID_RenderCaller, tc_render_caller);
+    set_custom_hook(app, HookID_BeginBuffer, tc_begin_buffer);
+    set_custom_hook(app, HookID_BufferEditRange, tc_buffer_edit_range);
+    set_custom_hook(app, HookID_Tick, tc_tick);
+    
+    mapping_init(tctx, &framework_mapping);
+    // setup_default_mapping(&framework_mapping, mapid_global, mapid_file, mapid_code);
+    tc_setup_mapping(&framework_mapping, mapid_global, mapid_file, mapid_code);
 }
 
 #endif //FCODER_DEFAULT_BINDINGS

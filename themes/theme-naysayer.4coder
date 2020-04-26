@@ -33,7 +33,7 @@ defcolor_paste = 0xFFFFBB00;
 
 defcolor_undo = 0xFF80005D;
 
-defcolor_highlight_junk = 0xFF3A0000;
+defcolor_highlight_junk = 0x80500000;
 defcolor_highlight_white = 0xFF003A3A;
 
 defcolor_bar = 0xFFCACACA;

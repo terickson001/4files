@@ -40,6 +40,7 @@ CUSTOM_DOC("Language specific goto_jump_at_cursor")
                 View_ID target_view = get_active_view(app, Access_Always);
                 switch_to_existing_view(app, target_view, buffer);
                 jump_to_location(app, target_view, buffer, location);
+                
             }
         }
     }

@@ -21,25 +21,8 @@ function void tc_exec_project_command(Application_Links *app, Project_Command *c
             
             if (footer_panel){
                 view = get_or_open_build_panel(app);
-                if (string_match(command->out, string_u8_litexpr("*compilation*"))){
+                if (string_match(command->out, string_u8_litexpr("*compilation*")))
                     set_fancy_font = true;
-                    for (i32 l = 0; l < LANG_COUNT; l++)
-                    {
-                        for (i32 e = 0; e < languages[l].extensions.count; e++)
-                        {
-                            Scratch_Block scratch(app);
-                            String_Const_u8 ext = push_stringf(scratch, ".%.*s", string_expand(languages[l].extensions.strings[e]));
-                            if (match_in_pattern_array(ext, current_project.pattern_array))
-                            {
-                                /*
-                                                                buffer_id.id = buffer_identifier_to_id_create_out_buffer(app, buffer_id);
-                                                                buffer_set_language(app, buffer_id.id, &languages[l]);
-                                                                 */
-                                last_compiled_language = &languages[l];
-                            }
-                        }
-                    }
-                }
             }
             else{
                 Buffer_ID buffer = buffer_identifier_to_id(app, buffer_id);

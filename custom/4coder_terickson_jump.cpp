@@ -1,9 +1,25 @@
+Parsed_Jump try_language_jump(String_Const_u8 line_str)
+{
+    Parsed_Jump jump = {};
+    for (int i = 0; i < LANG_COUNT; i++)
+    {
+        jump = languages[i].parse_jump_location(line_str);
+        if (jump.success)
+            return jump;
+    }
+    return jump;
+}
+
 internal Sticky_Jump_Array tc_parse_buffer_to_jump_array(Application_Links *app, Arena *arena, Buffer_ID buffer){
     Sticky_Jump_Node *jump_first = 0;;
     Sticky_Jump_Node *jump_last = 0;
     i32 jump_count = 0;
     
-    Language *language = last_compiled_language;
+    Managed_Scope scope = buffer_get_managed_scope(app, buffer);
+    Base_Allocator *managed_allocator = managed_scope_allocator(app, scope);
+    Arena managed_arena = make_arena(managed_allocator);
+    List_String_Const_u8 *msg_list = scope_attachment(app, scope, buffer_errors, List_String_Const_u8);
+    
     for (i32 line = 1;; line += 1){
         b32 output_jump = false;
         i32 colon_index = 0;
@@ -14,9 +30,7 @@ internal Sticky_Jump_Array tc_parse_buffer_to_jump_array(Application_Links *app,
             Temp_Memory_Block line_auto_closer(arena);
             if (is_valid_line(app, buffer, line)){
                 String_Const_u8 line_str = push_buffer_line(app, arena, buffer, line);
-                Parsed_Jump parsed_jump;
-                if (language) parsed_jump = language->parse_jump_location(line_str);
-                else parse_jump_location(line_str);
+                Parsed_Jump parsed_jump = try_language_jump(line_str);
                 if (parsed_jump.success){
                     Buffer_ID jump_buffer = {};
                     if (open_file(app, &jump_buffer, parsed_jump.location.file, false, true)){
@@ -26,6 +40,10 @@ internal Sticky_Jump_Array tc_parse_buffer_to_jump_array(Application_Links *app,
                                 out_buffer_id = jump_buffer;
                                 out_pos = cursor.pos;
                                 output_jump = true;
+                                if (parsed_jump.msg.size > 0)
+                                {
+                                    string_list_push(&managed_arena, msg_list, push_string_copy(&managed_arena, parsed_jump.msg));
+                                }
                             }
                         }
                     }
@@ -53,8 +71,8 @@ internal Sticky_Jump_Array tc_parse_buffer_to_jump_array(Application_Links *app,
     result.jumps = push_array(arena, Sticky_Jump, result.count);
     i32 index = 0;
     for (Sticky_Jump_Node *node = jump_first;
-              node != 0;
-    node = node->next){
+         node != 0;
+         node = node->next){
         result.jumps[index] = node->jump;
         index += 1;
     }
@@ -74,9 +92,9 @@ internal void tc_init_marker_list(Application_Links *app, Heap *heap, Buffer_ID 
     }
     sort_pairs_by_key(range_index_buffer_id_pairs, buffer_ranges.count);
     Range_i32_Array scoped_buffer_ranges = get_ranges_of_duplicate_keys(scratch,
-                                                                             &range_index_buffer_id_pairs->key,
-                                                                             sizeof(*range_index_buffer_id_pairs),
-    buffer_ranges.count);
+                                                                        &range_index_buffer_id_pairs->key,
+                                                                        sizeof(*range_index_buffer_id_pairs),
+                                                                        buffer_ranges.count);
     
     Sticky_Jump_Stored *stored = push_array(scratch, Sticky_Jump_Stored, jumps.count);
     
@@ -88,8 +106,8 @@ internal void tc_init_marker_list(Application_Links *app, Heap *heap, Buffer_ID 
         
         u32 total_jump_count = 0;
         for (i32 j = buffer_range_indices.first;
-                      j < buffer_range_indices.one_past_last;
-        j += 1){
+             j < buffer_range_indices.one_past_last;
+             j += 1){
             i32 range_index = range_index_buffer_id_pairs[j].index;
             Range_i32 range = buffer_ranges.ranges[range_index];
             total_jump_count += range_size(range);
@@ -100,8 +118,8 @@ internal void tc_init_marker_list(Application_Links *app, Heap *heap, Buffer_ID 
         Buffer_ID target_buffer_id = 0;
         u32 marker_index = 0;
         for (i32 j = buffer_range_indices.first;
-                      j < buffer_range_indices.one_past_last;
-        j += 1){
+             j < buffer_range_indices.one_past_last;
+             j += 1){
             i32 range_index = range_index_buffer_id_pairs[j].index;
             Range_i32 range = buffer_ranges.ranges[range_index];
             if (target_buffer_id == 0){
