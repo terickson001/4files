@@ -1,29 +1,30 @@
 #include "generated/lexer_odin.h"
 #include "generated/lexer_odin.cpp"
+#include "4coder_terickson_language.h"
 
 // Common
 function b32 odin_is_builtin_type(Token *token)
 {
     return TokenOdinKind_byte <= token->sub_kind &&
-    token->sub_kind <= TokenOdinKind_u128be;
+        token->sub_kind <= TokenOdinKind_u128be;
 }
 
 function b32 odin_is_builtin_proc(Token *token)
 {
     return TokenOdinKind_len <= token->sub_kind &&
-    token->sub_kind <= TokenOdinKind_card;
+        token->sub_kind <= TokenOdinKind_card;
 }
 
 function b32 odin_is_directive(Token *token)
 {
     return TokenOdinKind_align <= token->sub_kind &&
-    token->sub_kind <= TokenOdinKind_partial;
+        token->sub_kind <= TokenOdinKind_partial;
 }
 
 function b32 odin_is_attribute(Token *token)
 {
     return TokenOdinKind_builtin <= token->sub_kind &&
-    token->sub_kind <= TokenOdinKind_thread_local;
+        token->sub_kind <= TokenOdinKind_thread_local;
 }
 // Index
 #include "languages/odin/index.cpp"
@@ -40,9 +41,9 @@ static FColor odin_get_token_color(Token token)
         case TokenBaseKind_Keyword:
         {
             if (odin_is_directive(&token) || odin_is_attribute(&token))
-            color = defcolor_preproc;
+                color = defcolor_preproc;
             else
-            color = defcolor_keyword;
+                color = defcolor_keyword;
         } break;
         case TokenBaseKind_Comment:
         {
@@ -63,9 +64,9 @@ static FColor odin_get_token_color(Token token)
         case TokenBaseKind_Identifier:
         {
             if (odin_is_builtin_type(&token))
-            color = defcolor_type_name;
+                color = defcolor_type_name;
             else if (odin_is_builtin_proc(&token))
-            color = defcolor_function_name;
+                color = defcolor_function_name;
         }break;
     }
     return(fcolor_id(color));
@@ -84,6 +85,7 @@ function Parsed_Jump odin_parse_jump_location(String_Const_u8 line)
     String_Const_u8 file_name     = string_prefix(line, lparen_pos);
     String_Const_u8 line_number   = string_skip(string_prefix(line, colon_pos), lparen_pos+1);
     String_Const_u8 column_number = string_skip(string_prefix(line, rparen_pos), colon_pos+1);
+    String_Const_u8 message = string_skip(line, rparen_pos + 2);
     
     if (file_name.size > 0 && line_number.size > 0 && column_number.size > 0)
     {
@@ -91,15 +93,23 @@ function Parsed_Jump odin_parse_jump_location(String_Const_u8 line)
         jump.location.line   = (i32)string_to_integer(line_number, 10);
         jump.location.column = (i32)string_to_integer(column_number, 10);
         jump.colon_position = (i32)(rparen_pos);
+        jump.msg = message;
         jump.success = true;
     }
     
     if (!jump.success)
-    block_zero_struct(&jump);
+        block_zero_struct(&jump);
     else
-    jump.is_sub_jump = false; // @note(tyler): What is this for?
+        jump.is_sub_jump = false; // @note(tyler): What is this for?
     
     return jump;
 }
 
-String_Const_u8 odin_comment_delims[3] = {SCu8("//"), SCu8("/*"), SCu8("*/")};
+Comment_Delimiters odin_comment_delims = {SCu8("//"), SCu8("/*"), SCu8("*/")};
+
+static Language language_def_odin = LANG_DEF("Odin", odin, ".odin");
+
+function void init_language_odin()
+{
+	push_language(&language_def_odin);
+}

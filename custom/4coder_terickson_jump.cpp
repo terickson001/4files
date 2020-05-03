@@ -1,9 +1,11 @@
 Parsed_Jump try_language_jump(String_Const_u8 line_str)
 {
     Parsed_Jump jump = {};
-    for (int i = 0; i < LANG_COUNT; i++)
+    for (Language *lang = languages.first;
+         lang != 0;
+         lang = lang->next)
     {
-        jump = languages[i].parse_jump_location(line_str);
+        jump = lang->parse_jump_location(line_str);
         if (jump.success)
             return jump;
     }

@@ -183,6 +183,10 @@ static void tc_render_buffer(Application_Links *app, View_ID view_id, Face_ID fa
         }
     }
     
+    tc_render_scopeline(app, buffer, active_view, text_layout_id);
+    function_index_render_preview(app, buffer, active_view, text_layout_id);
+    
+    
     // NOTE(allen): Color parens
     if (global_config.use_paren_helper){
         Color_Array colors = finalize_color_array(defcolor_text_cycle);

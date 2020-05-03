@@ -1,4 +1,12 @@
 #include "languages/cpp/index.cpp"
+#include "4coder_terickson_language.h"
+
+// Common
+function b32 cpp_is_builtin_type(Token *token)
+{
+    return TokenCppKind_Void <= token->sub_kind
+        && token->sub_kind <= TokenCppKind_Signed;
+}
 
 // Highlight
 FColor cpp_get_token_color(Token token)
@@ -11,7 +19,10 @@ FColor cpp_get_token_color(Token token)
         } break;
         case TokenBaseKind_Keyword:
         {
-            color = defcolor_keyword; break;
+            if (cpp_is_builtin_type(&token))
+                color = defcolor_type_name;
+            else
+                color = defcolor_keyword;
         } break;
         case TokenBaseKind_Comment:
         {
@@ -134,13 +145,13 @@ Parsed_Jump cpp_parse_jump_location(String_Const_u8 line)
             String_Const_u8 file_name = string_skip(string_prefix(line, colon_pos1), start);
             String_Const_u8 line_number = string_skip(string_prefix(line, colon_pos2), colon_pos1 + 1);
             String_Const_u8 column_number = string_skip(string_prefix(line, colon_pos3), colon_pos2 + 1);
-            String_Const_u8 msg = string_skip(line, colon_pos3 + 2);
+            String_Const_u8 message = string_skip(line, colon_pos3 + 2);
             if (file_name.size > 0 && line_number.size > 0 && column_number.size > 0){
                 jump.location.file = file_name;
                 jump.location.line = (i32)string_to_integer(line_number, 10);
                 jump.location.column = (i32)string_to_integer(column_number, 10);
                 jump.colon_position = (i32)(colon_pos3 + whitespace_length);
-                jump.msg = msg;
+                jump.msg = message;
                 jump.success = true;
             }
         }
@@ -152,6 +163,7 @@ Parsed_Jump cpp_parse_jump_location(String_Const_u8 line)
                 
                 String_Const_u8 file_name = string_prefix(line, colon_pos1);
                 String_Const_u8 line_number = string_skip(string_prefix(line, colon_pos2), colon_pos1 + 1);
+                String_Const_u8 message = string_skip(line, colon_pos2 + 2);
                 
                 if (string_is_integer(line_number, 10)){
                     if (file_name.size > 0 && line_number.size > 0){
@@ -159,6 +171,7 @@ Parsed_Jump cpp_parse_jump_location(String_Const_u8 line)
                         jump.location.line = (i32)string_to_integer(line_number, 10);
                         jump.location.column = 0;
                         jump.colon_position = (i32)(colon_pos3 + whitespace_length);
+                        jump.msg = message;
                         jump.success = true;
                     }
                 }
@@ -175,4 +188,183 @@ Parsed_Jump cpp_parse_jump_location(String_Const_u8 line)
     return(jump);
 }
 
-String_Const_u8 cpp_comment_delims[3] = {SCu8("//"), SCu8("/*"), SCu8("*/")};
+Comment_Delimiters cpp_comment_delims = {SCu8("//"), SCu8("/*"), SCu8("*/")};
+
+static Language language_def_cpp = LANG_DEF("CPP", cpp, ".c.cpp.h.hpp.cc");
+
+#ifdef EXT_FUNCTION_INDEX
+function Function_Index *cpp_parse_function__findexer(Application_Links *app, Code_Index_Note *note, Arena *arena)
+{
+    Code_Index_Nest *nest = code_index_get_nest(note->file, note->pos.max+1);
+    if (!nest || nest->kind != CodeIndexNest_Paren)
+        return 0;
+    
+    Buffer_ID buffer = note->file->buffer;
+    Range_i64 param_range = Ii64(nest->open.max, nest->close.min);
+    Token_Array tokens = get_token_array_from_buffer(app, buffer);
+    
+    Function_Index *index = push_array_zero(arena, Function_Index, 1);
+    index->note = note;
+    index->name = note->text;
+    index->parameters = {0};
+    
+    i64 idx = token_index_from_pos(&tokens, param_range.min);
+    String_Const_u8 param_string = push_buffer_range(app, arena, buffer, param_range);
+    Function_Parameter *param = 0;
+    
+    while (tokens.tokens[idx].pos < param_range.max)
+    {
+        String_Const_u8 prefix = {};
+        String_Const_u8 type = {};
+        String_Const_u8 postfix = {};
+        String_Const_u8 name = {};
+        
+        //// TYPE PREFIX
+        type_prefix:
+        switch (tokens.tokens[idx].sub_kind)
+        {
+            case TokenCppKind_Static:
+            case TokenCppKind_Volatile:
+            case TokenCppKind_Const:
+            if (prefix.str == 0)
+                prefix.str = &param_string.str[tokens.tokens[idx].pos - param_range.min];
+            idx++;
+            goto type_prefix;
+            
+            default:
+            if (prefix.str != 0)
+                prefix.size = &param_string.str[Ii64(&tokens.tokens[idx-1]).max-param_range.min] - prefix.str;
+            break;
+        }
+        
+        while (tokens.tokens[idx].kind == TokenBaseKind_Whitespace ||
+               tokens.tokens[idx].kind == TokenBaseKind_Comment) idx++;
+        
+        //// TYPE NAME
+        type_name:
+        switch (tokens.tokens[idx].sub_kind)
+        {
+            case TokenCppKind_Identifier:
+            case TokenCppKind_Struct:
+            case TokenCppKind_Enum:
+            case TokenCppKind_Union:
+            if (type.str == 0)
+                type.str = &param_string.str[tokens.tokens[idx].pos - param_range.min];
+            idx++;
+            goto type_name;
+            
+            default:
+            if (cpp_is_builtin_type(&tokens.tokens[idx]))
+            {
+                if (type.str == 0)
+                    type.str = &param_string.str[tokens.tokens[idx].pos - param_range.min];
+                idx++;
+                goto type_name;
+            }
+            else
+            {
+                if (type.str != 0)
+                    type.size = &param_string.str[Ii64(&tokens.tokens[idx-1]).max-param_range.min] - type.str;
+                break;
+            }
+        }
+        
+        while (tokens.tokens[idx].kind == TokenBaseKind_Whitespace ||
+               tokens.tokens[idx].kind == TokenBaseKind_Comment) idx++;
+        
+        //// TYPE POSTFIX
+        type_postfix:
+        switch (tokens.tokens[idx].sub_kind)
+        {
+            case TokenCppKind_Star:
+            if (postfix.str == 0)
+                postfix.str = &param_string.str[tokens.tokens[idx].pos - param_range.min];
+            idx++;
+            goto type_postfix;
+            
+            default:
+            if (postfix.str != 0)
+                postfix.size = &param_string.str[Ii64(&tokens.tokens[idx-1]).max-param_range.min] - postfix.str;
+            break;
+        }
+        
+        while (tokens.tokens[idx].kind == TokenBaseKind_Whitespace ||
+               tokens.tokens[idx].kind == TokenBaseKind_Comment) idx++;
+        //// PARAM NAME
+        switch (tokens.tokens[idx].sub_kind)
+        {
+            case TokenCppKind_Identifier:
+            name.str = &param_string.str[tokens.tokens[idx].pos - param_range.min];
+            name.size = tokens.tokens[idx].size;
+            idx++;
+            break;
+            
+            default:
+            break;
+        }
+        
+        //// SKIP TO COMMA or PAREN
+        skip_rest:
+        switch (tokens.tokens[idx].sub_kind)
+        {
+            case TokenCppKind_Comma:
+            case TokenCppKind_ParenCl:
+            idx++;
+            break;
+            
+            default:
+            idx++;
+            goto skip_rest;
+        }
+        
+        param = push_array_zero(arena, Function_Parameter, 1);
+        param->prefix = push_string_copy(arena, prefix);
+        param->name = push_string_copy(arena, name);
+        param->postfix = push_string_copy(arena, postfix);
+        param->type = push_string_copy(arena, type);
+        sll_queue_push(index->parameters.first, index->parameters.last, param);
+    }
+    
+    return index;
+}
+
+function List_String_Const_u8 cpp_parameter_strings(Function_Index *index, Arena *arena)
+{
+    List_String_Const_u8 param_strings = {};//push_array(arena, List_String_Const_u8, 1);
+    for (Function_Parameter *param = index->parameters.first;
+         param != 0;
+         param = param->next)
+    {
+        if(param->type.size == 0)
+            continue;
+        string_list_pushf(arena, &param_strings, "%.*s%c%.*s%.*s",
+                          string_expand(param->type),
+                          param->name.size!=0 || param->postfix.size!=0?' ':0,
+                          string_expand(param->postfix),
+                          string_expand(param->name)
+                          );
+    }
+    
+    return param_strings;
+}
+
+static Language_Function_Indexer cpp_function_indexer =
+{
+    cpp_parse_function__findexer,
+    cpp_parameter_strings,
+    .delims = {
+        TokenCppKind_ParenOp, SCu8("("),
+        TokenCppKind_ParenCl, SCu8(")"),
+        TokenCppKind_Comma, SCu8(",")
+    },
+};
+#endif
+
+function void init_language_cpp()
+{
+    push_language(&language_def_cpp);
+#ifdef EXT_FUNCTION_INDEX
+    Extension_Support findex_support = {EXT_FUNCTION_INDEX, make_data_struct(&cpp_function_indexer)};
+    language_add_extension(&language_def_cpp, findex_support);
+#endif
+}

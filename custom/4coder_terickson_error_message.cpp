@@ -22,7 +22,6 @@ function void tc_render_error_messages(Application_Links *app, Buffer_ID buffer,
     int last_line = -1;
     for (i32 i = 0; i < markers->jump_count; i += 1, node = node->next){
         if (jump_array[i].jump_buffer_id != buffer) continue;
-        
         ID_Pos_Jump_Location location = {};
         if (!get_jump_from_list(app, markers, i, &location))
             continue;
@@ -42,12 +41,4 @@ function void tc_render_error_messages(Application_Links *app, Buffer_ID buffer,
         draw_string(app, face_id, node->string, draw_pos, color);
         last_line = line_number;
     }
-    
-    for (Node_String_Const_u8 *node = msg_list->first;
-         node != 0;
-         node = node->next)
-    {
-        
-    }
-    
 }

@@ -1,5 +1,6 @@
 #include "generated/lexer_glsl.h"
 #include "generated/lexer_glsl.cpp"
+#include "4coder_terickson_language.h"
 
 // Common
 function b32 glsl_is_builtin_type(Token *token)
@@ -63,4 +64,12 @@ function Parsed_Jump glsl_parse_jump_location(String_Const_u8 line)
     return {.success = false};
 }
 
-String_Const_u8 glsl_comment_delims[3] = {SCu8("//"), SCu8("/*"), SCu8("*/")};
+Comment_Delimiters glsl_comment_delims = {SCu8("//"), SCu8("/*"), SCu8("*/")};
+
+
+static Language language_def_glsl = LANG_DEF("GLSL", glsl, ".glsl.vert.frag.geom.tess.vs.fs.gs.ts.compute");
+
+function void init_language_glsl()
+{
+	push_language(&language_def_glsl);
+}

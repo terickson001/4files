@@ -22,7 +22,7 @@ lister_whole_word_backspace_when_modified = false;
 show_line_number_margins = false; // Disable due to performance bug
 
 // Code Wrapping
-treat_as_code = ".cpp.c.hpp.h.cc.cs.java.rs.glsl.m.mm.odin.4coder";
+treat_as_code = ".cc.cs.java.rs.m.mm";
 enable_virtual_whitespace = true;
 virtual_whitespace_regular_indent = 4;
 enable_code_wrapping = true;

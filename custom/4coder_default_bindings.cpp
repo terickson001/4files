@@ -16,23 +16,26 @@
 
 global Arena *tc_global_arena = {};
 
+#include "4coder_terickson_language.cpp"
+
+#include "4coder_terickson_function_index.cpp"
+
 #include "languages/cpp/cpp.cpp"
 #include "languages/odin/odin.cpp"
 #include "languages/glsl/glsl.cpp"
 #include "languages/gas/gas.cpp"
 #include "languages/nasm/nasm.cpp"
 
-#include "4coder_terickson_language.cpp"
 #include "4coder_terickson_code_index.cpp"
 #include "4coder_terickson_jump.cpp"
 #include "4coder_terickson_error_message.cpp"
+#include "4coder_terickson_scopeline.cpp"
 #include "4coder_terickson_highlight.cpp"
 #include "4coder_terickson_hooks.cpp"
 #include "4coder_terickson_project.cpp"
 #include "4coder_terickson_lists.cpp"
 #include "4coder_terickson_commands.cpp"
 #include "4coder_terickson_map.cpp"
-
 
 
 void
@@ -45,6 +48,11 @@ custom_layer_init(Application_Links *app)
     code_index_init();
     
     tc_global_arena = reserve_arena(app);
+	init_language_cpp();
+	init_language_odin();
+	init_language_glsl();
+	init_language_gas();
+	init_language_nasm();
     init_languages(app, tc_global_arena);
     
     // NOTE(allen): default hooks and command maps

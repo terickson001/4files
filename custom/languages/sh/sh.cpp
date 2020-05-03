@@ -1,19 +1,13 @@
-#include "generated/lexer_gas.h"
-#include "generated/lexer_gas.cpp"
-#include "4coder_terickson_language.h"
+#include "generated/lexer_sh.h"
+#include "generated/lexer_sh.cpp"
 
 // Common
-function b32 gas_is_register(Token *token)
-{
-    return TokenGasKind_rax <= token->sub_kind &&
-        token->sub_kind <= TokenGasKind_xmm15;
-}
 
 // Index
-#include "languages/gas/index.cpp"
+#include "languages/sh/index.cpp"
 
 // Highlight
-static FColor gas_get_token_color(Token token)
+static FColor sh_get_token_color(Token token)
 {
     Managed_ID color = defcolor_text_default;
     switch (token.kind){
@@ -41,21 +35,18 @@ static FColor gas_get_token_color(Token token)
         {
             color = defcolor_float_constant;
         } break;
+        case TokenBaseKind_Identifier:
+        {
+            color = defcolor_text_default;
+        }break;
     }
     return(fcolor_id(color));
 }
 
 // Jump
-function Parsed_Jump gas_parse_jump_location(String_Const_u8 line)
+function Parsed_Jump sh_parse_jump_location(String_Const_u8 line)
 {
-    return cpp_parse_jump_location(line);
+    return (Parsed_Jump){0};
 }
 
-Comment_Delimiters gas_comment_delims = {SCu8("#"), SCu8("/*"), SCu8("*/")};
-
-static Language language_def_gas = LANG_DEF("GAS", gas, ".s.S");
-
-function void init_language_gas()
-{
-    push_language(&language_def_gas);
-}
+String_Const_u8 sh_comment_delims[3] = {SCu8("#"), string_u8_empty, string_u8_empty};

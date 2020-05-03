@@ -1,0 +1,7 @@
+* Easymotion-esque movement
+* Zap-To-Char
+* Function Parameter Preview
+* Struct Skeleton Preview/Insertion
+
+* Live reload?
+** At the very least, reopen with same state

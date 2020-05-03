@@ -1,57 +1,39 @@
+#include "4coder_terickson_language.h"
 
-struct Language
-{
-    String_Const_u8 name;
-    String_Const_u8 ext_string;
-    char **token_kind_names;
-    String_Const_u8 *comment_delims;
-    // @note(tyler): These are required for a cancellable lexer,
-    //               but the `Lex_State_{}` is specific to each language
-    /*
-    void (*lex_init)(Lex_State_{} *state_ptr, String_Const_u8 input);
-    void (*lex_breaks)(Arena *arena, Token_List *list, Lex_State_{} *state_ptr, u64 max);
-    */
-    Token_List (*lex_full_input)(Arena *arena, String_Const_u8 input);
-    b32 (*try_index)(Code_Index_File *index, Generic_Parse_State *state);
-    FColor (*get_token_color)(Token token);
-    Parsed_Jump (*parse_jump_location)(String_Const_u8 line);
-    
-    String_Const_u8_Array extensions;
-};
-
-#define LANG(PRETTY, NAME, EXT) \
+#define LANG_DEF(PRETTY, NAME, EXT) \
 { \
 SCu8(PRETTY), \
 SCu8(EXT), \
 token_##NAME##_kind_names, \
-&NAME##_comment_delims[0], \
+NAME##_comment_delims, \
 lex_full_input_##NAME, \
 NAME##_try_index, \
 NAME##_get_token_color, \
 NAME##_parse_jump_location \
 }
 
-global Language *last_compiled_language = 0;
-global Language languages[] = {
-    LANG("CPP",    cpp,  ".c.cpp.h.hpp.cc"),
-    LANG("Odin",   odin, ".odin"),
-    LANG("GLSL",   glsl, ".glsl.vert.frag.geom.tess.vs.fs.gs.ts.compute"),
-    LANG("GAS",    gas,  ".S"),
-    LANG("NASM",   nasm, ".asm"),
-    LANG("4Coder", cpp,  ".4coder")
-};
-
-#undef LANG
-
-global Language *default_language = &languages[0];
-
-#define LANG_COUNT (sizeof(languages)/sizeof(*languages))
+// @todo(tyler): Use wildcard string instead of extensions
+function void push_language(Language *lang)
+{
+    if (!languages.last)
+    {
+        languages.first = languages.last = lang;
+    }
+    else
+    {
+        languages.last->next = lang;
+        languages.last = lang;
+    }
+    languages.count++;
+}
 
 function void init_languages(Application_Links *app, Arena *arena)
 {
-    for (int l = 0; l < LANG_COUNT; l++)
+    for (Language *lang = languages.first;
+         lang != 0;
+         lang = lang->next)
     {
-        languages[l].extensions = parse_extension_line_to_extension_list(app, arena, languages[l].ext_string);
+        lang->file_extensions = parse_extension_line_to_extension_list(app, arena, lang->ext_string);
     }
 }
 
@@ -71,13 +53,15 @@ function void buffer_set_language(Application_Links *app, Buffer_ID buffer, Lang
 
 function Language *language_from_extension(String_Const_u8 ext)
 {
-    for (i32 l = 0; l < LANG_COUNT; l++)
+    for (Language *lang = languages.first;
+         lang != 0;
+         lang = lang->next)
     {
-        for (i32 e = 0; e < languages[l].extensions.count; e++)
+        for (i32 e = 0; e < lang->file_extensions.count; e++)
         {
-            if (string_match(ext, languages[l].extensions.strings[e]))
+            if (string_match(ext, lang->file_extensions.strings[e]))
             {
-                return &languages[l];
+                return lang;
             }
         }
     }
@@ -86,11 +70,13 @@ function Language *language_from_extension(String_Const_u8 ext)
 
 function Language *language_from_name(String_Const_u8 name)
 {
-    for (i32 l = 0; l < LANG_COUNT; l++)
+    for (Language *lang = languages.first;
+         lang != 0;
+         lang = lang->next)
     {
-        if (string_match_insensitive(name, languages[l].name))
+        if (string_match_insensitive(name, lang->name))
         {
-            return &languages[l];
+            return lang;
         }
     }
     return 0;
@@ -140,9 +126,9 @@ function b32 language_line_comment_starts_at_position(Application_Links *app, Bu
 {
     b32 already_has_comment = false;
     u8 check_buffer[64] = {0};
-    if (buffer_read_range(app, buffer, Ii64(pos, pos + lang->comment_delims[0].size), check_buffer)) {
+    if (buffer_read_range(app, buffer, Ii64(pos, pos + lang->comment_delims.line.size), check_buffer)) {
         print_message(app, SCu8(check_buffer));
-        if (string_match(SCu8(check_buffer), lang->comment_delims[0]))
+        if (string_match(SCu8(check_buffer), lang->comment_delims.line))
             already_has_comment = true;
     }
     return(already_has_comment);
@@ -157,7 +143,7 @@ CUSTOM_DOC("Comment the current line with the current language's delimeters.")
     Language *lang = *buffer_get_language(app, buffer);
     b32 already_has_comment = language_line_comment_starts_at_position(app, buffer, pos, lang);
     if (!already_has_comment)
-        buffer_replace_range(app, buffer, Ii64(pos), lang->comment_delims[0]);
+        buffer_replace_range(app, buffer, Ii64(pos), lang->comment_delims.line);
 }
 
 
@@ -170,7 +156,7 @@ CUSTOM_DOC("Comment the current line with the current language's delimeters.")
     Language *lang = *buffer_get_language(app, buffer);
     b32 already_has_comment = language_line_comment_starts_at_position(app, buffer, pos, lang);
     if (already_has_comment)
-        buffer_replace_range(app, buffer, Ii64(pos, pos + lang->comment_delims[0].size), string_u8_empty);
+        buffer_replace_range(app, buffer, Ii64(pos, pos + lang->comment_delims.line.size), string_u8_empty);
 }
 
 CUSTOM_COMMAND_SIG(language_comment_line_toggle)
@@ -182,9 +168,9 @@ CUSTOM_DOC("Comment the current line with the current language's delimeters.")
     Language *lang = *buffer_get_language(app, buffer);
     b32 already_has_comment = language_line_comment_starts_at_position(app, buffer, pos, lang);
     if (already_has_comment)
-        buffer_replace_range(app, buffer, Ii64(pos, pos + lang->comment_delims[0].size), string_u8_empty);
+        buffer_replace_range(app, buffer, Ii64(pos, pos + lang->comment_delims.line.size), string_u8_empty);
     else
-        buffer_replace_range(app, buffer, Ii64(pos), lang->comment_delims[0]);
+        buffer_replace_range(app, buffer, Ii64(pos), lang->comment_delims.line);
 }
 
 CUSTOM_COMMAND_SIG(language_comment_range)
@@ -194,8 +180,8 @@ CUSTOM_DOC("Comment the current range according the current language's block com
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
     Language *lang = *buffer_get_language(app, buffer);
     
-    String_Const_u8 begin = lang->comment_delims[1];
-    String_Const_u8 end   = lang->comment_delims[2];
+    String_Const_u8 begin = lang->comment_delims.block_start;
+    String_Const_u8 end   = lang->comment_delims.block_end;
     
     Range_i64 range = get_view_range(app, view);
     Range_i64 lines = get_line_range_from_pos_range(app, buffer, range);
@@ -303,4 +289,34 @@ function i64 *get_indentation_array_from_index(Application_Links *app, Arena *ar
     Code_Index_Nest_List nests = file->nest_list;
     indent_nest_list(app, buffer, nests, indentations, 1, tab_width);
     return indentations;
+}
+
+function void language_add_extension(Language *lang, Extension_Support ext)
+{
+    Data str_data = *(Data *)&ext.ext_name;
+    Data ext_data = push_data_copy(tc_global_arena, make_data_struct(&ext));
+    if (!lang->extension_support.allocator)
+        lang->extension_support = make_table_Data_Data(tc_global_arena->base_allocator, 32);
+    table_insert(&lang->extension_support, str_data, ext_data);
+}
+
+function void language_add_extension(String_Const_u8 name, Extension_Support ext)
+{
+    language_add_extension(language_from_name(name), ext);
+}
+
+function Extension_Support *language_get_extension(Language *lang, String_Const_u8 ext_name)
+{
+    Data str_data = *(Data *)&ext_name;
+    Data ext_data;
+    Table_Lookup lookup = table_lookup(&lang->extension_support, str_data);
+    b32 res = table_read(&lang->extension_support, lookup, &ext_data);
+    if (res)
+        return (Extension_Support*)ext_data.data;
+    return 0;
+}
+
+function Extension_Support *language_get_extension(String_Const_u8 lang_name, String_Const_u8 ext_name)
+{
+    return language_get_extension(language_from_name(lang_name), ext_name);
 }
