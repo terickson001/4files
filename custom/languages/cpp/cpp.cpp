@@ -368,6 +368,7 @@ function List_String_Const_u8 cpp_parameter_strings(Function_Index *index, Arena
 
 static Language_Function_Indexer cpp_function_indexer =
 {
+    &language_def_cpp,
     cpp_parse_function__findexer,
     cpp_parameter_strings,
     .delims = {

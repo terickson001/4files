@@ -26,6 +26,16 @@ struct Function_Index
     String_Const_u8 name;
     Function_Parameter_List parameters;
     Language_Function_Indexer *indexer;
+    
+    Function_Index *next;
+};
+
+struct Function_Index_List
+{
+    Function_Index *first;
+    Function_Index *last;
+    
+    u32 count;
 };
 
 typedef Table_Data_Data Function_Index_Table;
@@ -55,13 +65,21 @@ struct Language_Function_Delimiters // Token Kinds
 
 struct Language_Function_Indexer
 {
+    Language *lang;
     Function_Index *(*parse_function)(Application_Links *app, Code_Index_Note *note, Arena *arena);
     List_String_Const_u8 (*parameter_strings)(Function_Index *index, Arena *arena);
     Language_Function_Delimiters delims;
 };
 
-Function_Index *function_index_from_token(Application_Links *app, Arena *arena, Buffer_ID buffer, Token token, Language_Function_Indexer *indexer)
+struct Function_Index_Menu
 {
+    Function_Index_List indices;
+    Render_Caller_Function *prev_render_caller;
+};
+
+Function_Index_List function_indices_from_token(Application_Links *app, Arena *arena, Buffer_ID buffer, Token token, Language_Function_Indexer *indexer)
+{
+    Function_Index_List indices = {0};
     String_Const_u8 ident = push_buffer_range(app, arena, buffer, Ii64(&token));
     
     for (Buffer_ID buf = get_buffer_next(app, 0, Access_Always);
@@ -81,12 +99,12 @@ Function_Index *function_index_from_token(Application_Links *app, Arena *arena, 
             {
                 Function_Index *index = indexer->parse_function(app, note, arena);
                 index->indexer = indexer;
-                return index;
+                sll_queue_push(indices.first, indices.last, index);
+                indices.count++;
             }
         }
     }
-    
-    return 0;
+    return indices;
 }
 
 function void function_index_render_preview(Application_Links *app, Buffer_ID buffer, View_ID view, Text_Layout_ID text_layout_id)
@@ -108,6 +126,11 @@ function void function_index_render_preview(Application_Links *app, Buffer_ID bu
     if (!start_nest) return;
     if (cursor_nest != start_nest)
     {
+        if (!cursor_nest)
+        {
+            current_function_preview = {0};
+            return; // Cancelled
+        }
         Code_Index_Nest *parent = cursor_nest->parent;
         while (parent)
         {
@@ -134,19 +157,7 @@ function void function_index_render_preview(Application_Links *app, Buffer_ID bu
     Language_Function_Delimiters delims = current_function_preview.index->indexer->delims;
     Range_i64 written_range = Ii64(start_marker->pos, end_marker->pos);
     String_Const_u8 written = push_buffer_range(app, scratch, buffer, written_range);
-    /*
-        u64 close_idx = 0;
-        close_idx = string_find_first(written, delims.close_str, StringMatch_Exact);
-        if (close_idx != written.size)
-        {
-            Code_Index_Nest *close_nest = code_index_get_nest(code_index, written_range.min + close_idx);
-            if (close_nest == start_nest)
-            {
-                current_function_preview = {0};
-                return; // Finished
-            }
-        }
-    */
+    
     u64 param_idx = 0;
     u32 curr_param = 0;
     while (written.size)
@@ -201,6 +212,133 @@ function void function_index_render_preview(Application_Links *app, Buffer_ID bu
     
 }
 
+function void function_index_menu_render(Application_Links *app, Frame_Info frame_info, View_ID view)
+{
+    Managed_Scope scope = view_get_managed_scope(app, view);
+    Function_Index_Menu **menu_ptr = scope_attachment(app, scope, view_function_index_menu, Function_Index_Menu*);
+    Function_Index_Menu *menu = *menu_ptr;
+    
+    if (!menu) return;
+    menu->prev_render_caller(app, frame_info, view);
+    if (menu->indices.count == 0) return;
+    
+    Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
+    Face_ID face = get_face_id(app, buffer);
+    
+    Scratch_Block scratch(app);
+    
+    Language_Function_Indexer *indexer = menu->indices.first->indexer;
+    Language_Function_Delimiters delims = indexer->delims;
+    String_Const_u8 param_delim_space = push_stringf(scratch, "%.*s ", string_expand(delims.parameter_str));
+    
+    Fancy_Block block = {};
+    int i = 0;
+    for (Function_Index *index = menu->indices.first;
+         index != 0;
+         index = index->next, i++)
+    {
+        List_String_Const_u8 parameters = indexer->parameter_strings(index, scratch);
+        String_Const_u8 flattened = string_list_flatten(scratch, parameters, param_delim_space, 0, 0);
+        String_Const_u8 param_str = push_stringf(scratch, "%.*s%.*s%.*s",
+                                                 string_expand(delims.open_str),
+                                                 string_expand(flattened),
+                                                 string_expand(delims.close_str)
+                                                 );
+        
+        Fancy_Line *line = push_fancy_line(scratch, &block, face);
+        push_fancy_stringf(scratch, line, fcolor_id(defcolor_pop1), "F%d:", i+1);
+        push_fancy_string(scratch, line, fcolor_id(defcolor_text_default), param_str);
+    }
+    
+    Rect_f32 region = view_get_buffer_region(app, view);
+    
+    Buffer_Scroll scroll = view_get_buffer_scroll(app, view);
+    Buffer_Point buffer_point = scroll.position;
+    i64 pos = view_get_cursor_pos(app, view);
+    Vec2_f32 cursor_p = view_relative_xy_of_pos(app, view, buffer_point.line_number, pos);
+    cursor_p -= buffer_point.pixel_shift;
+    cursor_p += region.p0;
+    
+    Face_Metrics metrics = get_face_metrics(app, face);
+    f32 x_padding = metrics.normal_advance;
+    f32 x_half_padding = x_padding*0.5f;
+    
+    draw_drop_down(app, face, &block, cursor_p, region, x_padding, x_half_padding,
+                   fcolor_id(defcolor_margin_hover), fcolor_id(defcolor_back));
+}
+
+function Function_Index *get_function_index_from_user_drop_down(Application_Links *app, View_ID view, Buffer_ID buffer, i64 pos, Function_Index_List indices)
+{
+    View_Context ctx = view_current_context(app, view);
+    Render_Caller_Function *prev_render_caller = ctx.render_caller;
+    Function_Index_Menu menu = {indices, prev_render_caller};
+    
+    ctx.render_caller = function_index_menu_render;
+    View_Context_Block ctx_block(app, view, &ctx);
+    
+    Managed_Scope scope = view_get_managed_scope(app, view);
+    Function_Index_Menu **menu_ptr = scope_attachment(app, scope, view_function_index_menu, Function_Index_Menu*);
+    *menu_ptr = &menu;
+    
+    Function_Index *index = 0;
+    b32 keep_looping_menu = true;
+    while (keep_looping_menu)
+    {
+        User_Input in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape);
+        
+        if (in.abort) break;
+        
+        b32 handled = false;
+        switch (in.event.kind)
+        {
+            case InputEventKind_KeyStroke:
+            {
+                switch(in.event.key.code)
+                {
+                    case KeyCode_F1:
+                    case KeyCode_F2:
+                    case KeyCode_F3:
+                    case KeyCode_F4:
+                    case KeyCode_F5:
+                    case KeyCode_F6:
+                    case KeyCode_F7:
+                    case KeyCode_F8:
+                    {
+                        handled = true;
+                        index = menu.indices.first;
+                        for (int idx = in.event.key.code; idx > KeyCode_F1; idx--)
+                        {
+                            if (!index)
+                                break;
+                            index = index->next;
+                        }
+                        if (index)
+                            keep_looping_menu = false;
+                    }break;
+                    
+                    default:
+                    {
+                        keep_looping_menu = false;
+                    } break;
+                }
+            }
+            case InputEventKind_TextInsert:
+            {
+                keep_looping_menu = false;
+            } break;
+        }
+        if (!handled)
+        {
+            leave_current_input_unhandled(app);
+        }
+    }
+    scope = view_get_managed_scope(app, view);
+    menu_ptr = scope_attachment(app, scope, view_function_index_menu, Function_Index_Menu*);
+    *menu_ptr = 0;
+    
+    return index;
+}
+
 CUSTOM_COMMAND_SIG(preview_function_parameters)
 CUSTOM_DOC("Shows a preview of the written function's parameter list")
 {
@@ -232,11 +370,14 @@ CUSTOM_DOC("Shows a preview of the written function's parameter list")
         token_index--;
     
     Function_Index *index = 0;
+    Function_Index_List indices = {0};
     i64 token_start = token_index;
     b32 is_open = false;
     if (tokens->tokens[token_index].kind == TokenBaseKind_Identifier)
     {
-        if (!(index = function_index_from_token(app, scratch, buffer, tokens->tokens[token_index], lang_indexer)))
+        indices = function_indices_from_token(app, scratch, buffer,
+                                              tokens->tokens[token_index], lang_indexer);
+        if (indices.count == 0)
             return;
         
     }
@@ -253,8 +394,21 @@ CUSTOM_DOC("Shows a preview of the written function's parameter list")
         if (tokens->tokens[token_index].kind != TokenBaseKind_Identifier)
             return;
         
-        if (!(index = function_index_from_token(app, scratch, buffer, tokens->tokens[token_index], lang_indexer)))
+        indices = function_indices_from_token(app, scratch, buffer,
+                                              tokens->tokens[token_index], lang_indexer);
+        if (indices.count == 0)
             return;
+    }
+    
+    if (indices.count > 1)
+    {
+        index = get_function_index_from_user_drop_down(app, view, buffer, cursor, indices);
+        if (!index)
+            return;
+    }
+    else
+    {
+        index = indices.first;
     }
     
     if (!index) // No Index Found
