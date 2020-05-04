@@ -41,9 +41,7 @@ struct Function_Index_Preview
     List_String_Const_u8 params;
 };
 
-// global Function_Index_Table global_indexed_functions;
 global Function_Index_Preview current_function_preview = {};
-
 
 struct Language_Function_Delimiters // Token Kinds
 {
@@ -105,19 +103,29 @@ function void function_index_render_preview(Application_Links *app, Buffer_ID bu
     Marker *end_marker = (Marker *)managed_object_get_pointer(app, current_function_preview.end_marker);
     Code_Index_File *code_index = code_index_get_file(buffer);
     Code_Index_Nest *start_nest = code_index_get_nest(code_index, start_marker->pos);
+    Code_Index_Nest *cursor_nest = code_index_get_nest(code_index, cursor);
     
-    // @todo(tyler): Handle multi-line parameters (Check Scopes?)
-    if (cursor_line != get_line_number_from_pos(app, buffer, start_marker->pos))
+    if (!start_nest) return;
+    if (cursor_nest != start_nest)
+    {
+        Code_Index_Nest *parent = cursor_nest->parent;
+        while (parent)
+        {
+            if (parent == start_nest)
+                break;
+            parent = parent->parent;
+        }
+        if (!parent)
+        {
+            current_function_preview = {0};
+            return; // Cancelled
+        }
+    }
+    if (start_nest->is_closed)
     {
         current_function_preview = {0};
-        return; // Cancelled
+        return; // Parameters are closed
     }
-    if (cursor < start_marker->pos)
-    {
-        current_function_preview = {0};
-        return; // Cancelled
-    }
-    
     
     Scratch_Block scratch(app);
     
@@ -126,30 +134,28 @@ function void function_index_render_preview(Application_Links *app, Buffer_ID bu
     Language_Function_Delimiters delims = current_function_preview.index->indexer->delims;
     Range_i64 written_range = Ii64(start_marker->pos, end_marker->pos);
     String_Const_u8 written = push_buffer_range(app, scratch, buffer, written_range);
-    u64 close_idx = 0;
-    close_idx = string_find_first(written, delims.close_str, StringMatch_Exact);
-    if (close_idx != written.size)
-    {
-        Code_Index_Nest *close_nest = code_index_get_nest(code_index, written_range.min + close_idx);
-        if (close_nest != start_nest)
+    /*
+        u64 close_idx = 0;
+        close_idx = string_find_first(written, delims.close_str, StringMatch_Exact);
+        if (close_idx != written.size)
         {
-            current_function_preview = {0};
-            return; // Finished
+            Code_Index_Nest *close_nest = code_index_get_nest(code_index, written_range.min + close_idx);
+            if (close_nest == start_nest)
+            {
+                current_function_preview = {0};
+                return; // Finished
+            }
         }
-    }
+    */
     u64 param_idx = 0;
     u32 curr_param = 0;
     while (written.size)
     {
         param_idx = string_find_first(written, delims.parameter_str, StringMatch_Exact);
         if (param_idx == written.size) break;
+        Code_Index_Nest *delim_nest = code_index_get_nest(code_index, written_range.max-written.size + param_idx);
         written = string_skip(written, param_idx+1);
-        Code_Index_Nest *delim_nest = code_index_get_nest(code_index, written_range.min + param_idx);
         if (delim_nest != start_nest) continue;
-        print_message(app, push_stringf(scratch, "(%d:%d) -- (%d:%d)\n",
-                                        start_nest->open.max, start_nest->close.min,
-                                        delim_nest->open.max, delim_nest->close.min)
-                      );
         curr_param++;
     }
     
@@ -191,8 +197,6 @@ function void function_index_render_preview(Application_Links *app, Buffer_ID bu
         start_rect.y0,
     };
     
-    Rect_f32 debug_rect = text_layout_character_on_screen(app, text_layout_id, start_marker->pos);
-    draw_rectangle(app, debug_rect, 0.1, finalize_color(defcolor_comment, 0));
     draw_string(app, face_id, parameters, draw_pos, color);
     
 }
@@ -227,7 +231,7 @@ CUSTOM_DOC("Shows a preview of the written function's parameter list")
             tokens->tokens[token_index].kind == TokenBaseKind_Comment))
         token_index--;
     
-    Function_Index *index;
+    Function_Index *index = 0;
     i64 token_start = token_index;
     b32 is_open = false;
     if (tokens->tokens[token_index].kind == TokenBaseKind_Identifier)
@@ -239,6 +243,7 @@ CUSTOM_DOC("Shows a preview of the written function's parameter list")
     else if (tokens->tokens[token_index].sub_kind == lang_indexer->delims.open)
     {
         is_open = true;
+        token_index--;
         while (token_index &&
                (tokens->tokens[token_index].kind == TokenBaseKind_Whitespace ||
                 tokens->tokens[token_index].kind == TokenBaseKind_EOF ||
@@ -252,10 +257,13 @@ CUSTOM_DOC("Shows a preview of the written function's parameter list")
             return;
     }
     
+    if (!index) // No Index Found
+        return;
+    
     if (current_function_preview.index && string_match(index->name, current_function_preview.index->name))
     {
         current_function_preview = {0};
-        return;
+        return; // Toggle
     }
     
     current_function_preview.params = lang_indexer->parameter_strings(index, tc_global_arena);

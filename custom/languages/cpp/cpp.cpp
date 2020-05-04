@@ -241,10 +241,27 @@ function Function_Index *cpp_parse_function__findexer(Application_Links *app, Co
                tokens.tokens[idx].kind == TokenBaseKind_Comment) idx++;
         
         //// TYPE NAME
+        b32 allow_ident = true;
         type_name:
         switch (tokens.tokens[idx].sub_kind)
         {
+            case TokenCppKind_Whitespace:
+            idx++;
+            goto type_name;
+            
             case TokenCppKind_Identifier:
+            if (!allow_ident)
+            {
+                type.size = &param_string.str[Ii64(&tokens.tokens[idx-1]).max-param_range.min] - type.str;
+                break;
+            }
+            allow_ident = false;
+            if (type.str == 0)
+                type.str = &param_string.str[tokens.tokens[idx].pos - param_range.min];
+            type.size = &param_string.str[Ii64(&tokens.tokens[idx]).max-param_range.min] - type.str;
+            idx++;
+            break;
+            
             case TokenCppKind_Struct:
             case TokenCppKind_Enum:
             case TokenCppKind_Union:
@@ -256,6 +273,7 @@ function Function_Index *cpp_parse_function__findexer(Application_Links *app, Co
             default:
             if (cpp_is_builtin_type(&tokens.tokens[idx]))
             {
+                allow_ident = false;
                 if (type.str == 0)
                     type.str = &param_string.str[tokens.tokens[idx].pos - param_range.min];
                 idx++;
@@ -268,7 +286,7 @@ function Function_Index *cpp_parse_function__findexer(Application_Links *app, Co
                 break;
             }
         }
-        
+        type = string_skip_chop_whitespace(type);
         while (tokens.tokens[idx].kind == TokenBaseKind_Whitespace ||
                tokens.tokens[idx].kind == TokenBaseKind_Comment) idx++;
         
