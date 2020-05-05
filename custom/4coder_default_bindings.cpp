@@ -26,6 +26,7 @@ global Arena *tc_global_arena = {};
 #include "languages/gas/gas.cpp"
 #include "languages/nasm/nasm.cpp"
 
+#include "4coder_terickson_todo.cpp"
 #include "4coder_terickson_code_index.cpp"
 #include "4coder_terickson_jump.cpp"
 #include "4coder_terickson_error_message.cpp"
@@ -57,6 +58,7 @@ custom_layer_init(Application_Links *app)
     
     // NOTE(allen): default hooks and command maps
     set_all_default_hooks(app);
+    set_custom_hook(app, HookID_WholeScreenRenderCaller, tc_whole_screen_render_caller);
     set_custom_hook(app, HookID_RenderCaller, tc_render_caller);
     set_custom_hook(app, HookID_BeginBuffer, tc_begin_buffer);
     set_custom_hook(app, HookID_BufferEditRange, tc_buffer_edit_range);

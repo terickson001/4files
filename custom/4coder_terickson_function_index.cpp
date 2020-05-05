@@ -250,8 +250,8 @@ function void function_index_menu_render(Application_Links *app, Frame_Info fram
         push_fancy_string(scratch, line, fcolor_id(defcolor_text_default), param_str);
     }
     
-    Rect_f32 region = view_get_buffer_region(app, view);
     
+    Rect_f32 region = view_get_buffer_region(app, view);
     Buffer_Scroll scroll = view_get_buffer_scroll(app, view);
     Buffer_Point buffer_point = scroll.position;
     i64 pos = view_get_cursor_pos(app, view);

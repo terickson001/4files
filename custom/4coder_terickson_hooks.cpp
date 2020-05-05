@@ -375,6 +375,16 @@ function void tc_code_index_update_tick(Application_Links *app)
     buffer_modified_set_clear();
 }
 
+function void tc_whole_screen_render_caller(Application_Links *app, Frame_Info frame_info)
+{
+    Rect_f32 region = global_get_screen_rectangle(app);
+    f32 w = 200;
+    f32 h = 320;
+    f32 p = 32;
+    Rect_f32 rect = {region.x1 - (w+p), region.y0 + p, region.x1 - p, region.y0 + (h+p)};
+    todo_list_render(app, 0, rect);
+}
+
 function void tc_tick(Application_Links *app, Frame_Info frame_info)
 {
     tc_code_index_update_tick(app);
