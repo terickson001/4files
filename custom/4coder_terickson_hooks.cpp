@@ -360,6 +360,7 @@ function void tc_code_index_update_tick(Application_Links *app)
         
         Generic_Parse_State state = {};
         generic_parse_init(app, &arena, contents, &tokens, &state);
+        state.handle_comment = todo_handle_comment;
         // TODO(allen): Actually determine this in a fair way.
         // Maybe switch to an enum?
         // Actually probably a pointer to a struct that defines the language.
