@@ -18,98 +18,176 @@ struct Comment_Note
     Comment_Note *next;
 };
 
-struct Comment_Note_List
+struct Comment_Note_File
 {
     Comment_Note *first;
     Comment_Note *last;
     
+    Buffer_ID buffer;
     i64 count;
+    b32 finished;
+    b32 updated;
+    
+    Range_i64 out_buffer_range;
+    
+    Arena *arena;
+    Comment_Note_File *next;
 };
 
+typedef Table_u64_u64 Comment_Note_Table;
+
 global Face_ID todo_face = 0;
-global Comment_Note_List todo_note_list;
+global Comment_Note_Table todo_note_table;
 
 global Buffer_Identifier todo_buffer_id = buffer_identifier(SCu8("*TODO*"));
 
-function void push_comment_note(Comment_Note_List *list, Comment_Note *note)
+function void push_comment_note(Comment_Note_File *file, Comment_Note *note)
 {
-    sll_queue_push(list->first, list->last, note);
-    list->count++;
+    sll_queue_push(file->first, file->last, note);
+    file->count++;
+    file->updated = true;
 }
 
-function void push_comment_note(Comment_Note_List *list, Comment_Note note, Arena *arena)
+function void push_comment_note(Comment_Note_File *file, Comment_Note note, Arena *arena)
 {
     Comment_Note *new_note = push_array_zero(arena, Comment_Note, 1);
     *new_note = note;
-    push_comment_note(list, new_note);
+    push_comment_note(file, new_note);
+}
+
+function Comment_Note_File *get_comment_note_file(Comment_Note_Table *table, Buffer_ID buffer)
+{
+    Comment_Note_File *file = 0;
+    Table_Lookup lookup = table_lookup(table, buffer);
+    b32 res = table_read(table, lookup, (u64*)&file);
+    if (res)
+        return file;
+    return 0;
+}
+
+function void set_comment_note_file(Comment_Note_Table *table, Buffer_ID buffer, Comment_Note_File *file)
+{
+    if (!table->allocator)
+        *table = make_table_u64_u64(tc_global_arena->base_allocator, 32);
+    table_erase(table, buffer);
+    table_insert(table, buffer, HandleAsU64(file));
 }
 
 function void todo_handle_comment(Application_Links *app, Arena *arena, Code_Index_File *index,
                                   Token *token, String_Const_u8 contents)
 {
+    Comment_Note_File *file = get_comment_note_file(&todo_note_table, index->buffer);
+    if (!file || file->finished)
+    {
+        Range_i64 out_buffer_range = {};
+        if (file)
+        {
+            out_buffer_range = file->out_buffer_range;
+            release_arena(app, file->arena);
+        }
+        Arena *file_arena = reserve_arena(app);
+        file = push_array_zero(file_arena, Comment_Note_File, 1);
+        file->buffer = index->buffer;
+        file->out_buffer_range = out_buffer_range;
+        file->arena = file_arena;
+        set_comment_note_file(&todo_note_table, index->buffer, file);
+    }
+    
     String_Const_u8 TODO_STR = SCu8("@todo");
+    String_Const_u8 HACK_STR = SCu8("@hack");
     String_Const_u8 str = string_substring(contents, Ii64(token));
     i64 start_idx = 0;
     for (;;)
     {
-        i64 idx = string_find_first(str, TODO_STR, StringMatch_CaseInsensitive);
-        if (idx == str.size) break;
-        
         Comment_Note note = {};
-        note.kind = CommentNote_Todo;
-        note.title = push_string_copy(tc_global_arena, string_substring(str, Ii64(idx, idx+TODO_STR.size)));
-        note.location = {index->buffer, token->pos+start_idx+idx};
+        i64 idx = string_find_first(str, TODO_STR, StringMatch_CaseInsensitive);
+        if (idx != str.size)
+        {
+            note.kind = CommentNote_Todo;
+            note.title = push_string_copy(tc_global_arena, string_substring(str, Ii64(idx, idx+TODO_STR.size)));
+            note.location = {index->buffer, token->pos+start_idx+idx};
+            start_idx += idx+TODO_STR.size;
+            
+            goto found;
+        }
+        idx = string_find_first(str, HACK_STR, StringMatch_CaseInsensitive);
+        if (idx != str.size)
+        {
+            note.kind = CommentNote_Hack;
+            note.title = push_string_copy(tc_global_arena, string_substring(str, Ii64(idx, idx+HACK_STR.size)));
+            note.location = {index->buffer, token->pos+start_idx+idx};
+            start_idx += idx+HACK_STR.size;
+            
+            goto found;
+        }
+        break;
         
-        start_idx += idx+TODO_STR.size;
+        
+        
+        found:
         
         idx = string_find_first(str, idx, ':');
         if (idx == str.size)
         {
-            push_comment_note(&todo_note_list, note, tc_global_arena);
-            continue;
+            push_comment_note(file, note, file->arena);
+            break;
         }
-        note.text = push_string_copy(tc_global_arena, string_skip_chop_whitespace(string_skip(str, idx+1)));
-        push_comment_note(&todo_note_list, note, tc_global_arena);
+        note.text = push_string_copy(file->arena, string_skip_chop_whitespace(string_skip(str, idx+1)));
+        push_comment_note(file, note, file->arena);
         break;
     }
 }
 
-function void write_todos_to_buffer(Application_Links *app, Buffer_ID buffer, Comment_Note_List *list)
+function void write_todos_to_buffer(Application_Links *app, Buffer_ID buffer, Comment_Note_Table *table)
 {
-    clear_buffer(app, buffer);
     i64 idx = 0;
-    for (Comment_Note *note = list->first;
-         note != 0;
-         note = note->next)
+    for (Buffer_ID buf = get_buffer_next(app, 0, Access_Always);
+         buf != 0;
+         buf = get_buffer_next(app, buf, Access_Always))
     {
-        note->todo_buf_title_pos = idx;
-        switch (note->kind)
+        Comment_Note_File *file = get_comment_note_file(&todo_note_table, buf);
+        if (!file) continue;
+        if (!file->updated) continue;
+        if (!file->finished) continue;
+        file->updated = false;
+        buffer_replace_range(app, buffer, file->out_buffer_range, string_u8_empty);
+        file->out_buffer_range = Ii64(idx);
+        
+        for (Comment_Note *note = file->first;
+             note != 0;
+             note = note->next)
         {
-            case CommentNote_Todo:
-            buffer_replace_range(app, buffer, Ii64(idx), SCu8("TODO: "));
-            idx += 6;
-            break;
-            
-            case CommentNote_Hack:
-            buffer_replace_range(app, buffer, Ii64(idx), SCu8("HACK: "));
-            idx += 6;
-            break;
-            
-            default: continue;
-            
+            note->todo_buf_title_pos = idx;
+            switch (note->kind)
+            {
+                case CommentNote_Todo:
+                buffer_replace_range(app, buffer, Ii64(idx), SCu8("TODO: "));
+                idx += 6;
+                break;
+                
+                case CommentNote_Hack:
+                buffer_replace_range(app, buffer, Ii64(idx), SCu8("HACK: "));
+                idx += 6;
+                break;
+                
+                default: continue;
+                
+            }
+            note->todo_buf_text_pos = idx;
+            buffer_replace_range(app, buffer, Ii64(idx), note->text);
+            idx += note->text.size;
+            if (note->text.size == 0 || note->text.str[note->text.size-1] != '\n')
+            {
+                buffer_replace_range(app, buffer, Ii64(idx), SCu8("\n"));
+                idx++;
+            }
         }
-        note->todo_buf_text_pos = idx;
-        buffer_replace_range(app, buffer, Ii64(idx), note->text);
-        idx += note->text.size;
-        if (note->text.str[note->text.size-1] != '\n')
-        {
-            buffer_replace_range(app, buffer, Ii64(idx), SCu8("\n"));
-            idx++;
-        }
+        file->out_buffer_range.max = idx-1;
     }
+    
 }
 
-function void todo_list_render(Application_Links *app, Comment_Note_List *list, Rect_f32 rect)
+function void todo_list_render(Application_Links *app, Comment_Note_Table *table, Rect_f32 rect)
 {
     ARGB_Color background_color = fcolor_resolve(fcolor_id(defcolor_back));
     ARGB_Color border_color = fcolor_resolve(fcolor_id(defcolor_margin_active));
@@ -132,7 +210,7 @@ function void todo_list_render(Application_Links *app, Comment_Note_List *list, 
         buffer_set_setting(app, buffer, BufferSetting_Unimportant, true);
         buffer_set_setting(app, buffer, BufferSetting_ReadOnly, true);
     }
-    write_todos_to_buffer(app, buffer, &todo_note_list);
+    write_todos_to_buffer(app, buffer, &todo_note_table);
     Text_Layout_ID text_layout = text_layout_create(app, buffer, rect, {0, 0});
     
     draw_rectangle(app, rect, 4.f, background_color);
@@ -142,13 +220,22 @@ function void todo_list_render(Application_Links *app, Comment_Note_List *list, 
     buffer_set_face(app, buffer, todo_face);
     Rect_f32 old_clip = draw_set_clip(app, rect);
     Vec2_f32 pos = {rect.x0+4, rect.y0+4};
-    for (Comment_Note *note = todo_note_list.first;
-         note != 0;
-         note = note->next)
+    for (Buffer_ID buf = get_buffer_next(app, 0, Access_Always);
+         buf != 0;
+         buf = get_buffer_next(app, buf, Access_Always))
     {
-        paint_text_color(app, text_layout, Ii64(note->todo_buf_title_pos, note->todo_buf_text_pos), finalize_color(defcolor_pop1, 0));
-        paint_text_color(app, text_layout, Ii64_size(note->todo_buf_text_pos, note->text.size), foreground_color);
+        Comment_Note_File *file = get_comment_note_file(&todo_note_table, buf);
+        if (!file) continue;
+        
+        for (Comment_Note *note = file->first;
+             note != 0;
+             note = note->next)
+        {
+            paint_text_color(app, text_layout, Ii64(note->todo_buf_title_pos, note->todo_buf_text_pos), finalize_color(defcolor_pop1, 0));
+            paint_text_color(app, text_layout, Ii64_size(note->todo_buf_text_pos, note->text.size), foreground_color);
+        }
     }
+    
     draw_text_layout_default(app, text_layout);
     draw_set_clip(app, old_clip);
     buffer_set_face(app, buffer, old_face);

@@ -370,6 +370,9 @@ function void tc_code_index_update_tick(Application_Links *app)
         code_index_lock();
         code_index_set_file(buffer_id, arena, index);
         code_index_unlock();
+        Comment_Note_File *file = get_comment_note_file(&todo_note_table, buffer_id);
+        if (file)
+            file->finished = true;
         buffer_clear_layout_cache(app, buffer_id);
     }
     
