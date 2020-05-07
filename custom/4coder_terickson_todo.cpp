@@ -192,7 +192,8 @@ function void todo_list_render(Application_Links *app, Comment_Note_Table *table
     ARGB_Color background_color = fcolor_resolve(fcolor_id(defcolor_back));
     ARGB_Color border_color = fcolor_resolve(fcolor_id(defcolor_margin_active));
     ARGB_Color foreground_color = fcolor_resolve(fcolor_id(defcolor_text_default));
-    
+    ARGB_Color title_color = fcolor_resolve(fcolor_id(defcolor_pop1));
+    background_color = (background_color & 0x00FFFFFF) | 0x80000000;
     if (todo_face == 0)
     {
         Face_ID default_face = get_face_id(app, 0);
@@ -211,15 +212,16 @@ function void todo_list_render(Application_Links *app, Comment_Note_Table *table
         buffer_set_setting(app, buffer, BufferSetting_ReadOnly, true);
     }
     write_todos_to_buffer(app, buffer, &todo_note_table);
-    Text_Layout_ID text_layout = text_layout_create(app, buffer, rect, {0, 0});
     
     draw_rectangle(app, rect, 4.f, background_color);
     draw_rectangle_outline(app, rect, 4.f, 3.f, border_color);
+    rect.x0 += 3; rect.x1 -= 6;
+    rect.y0 += 3; rect.y1 -= 6;
+    Text_Layout_ID text_layout = text_layout_create(app, buffer, rect, {0, 0});
     
     Face_ID old_face = get_face_id(app, buffer);
     buffer_set_face(app, buffer, todo_face);
     Rect_f32 old_clip = draw_set_clip(app, rect);
-    Vec2_f32 pos = {rect.x0+4, rect.y0+4};
     for (Buffer_ID buf = get_buffer_next(app, 0, Access_Always);
          buf != 0;
          buf = get_buffer_next(app, buf, Access_Always))
@@ -231,7 +233,7 @@ function void todo_list_render(Application_Links *app, Comment_Note_Table *table
              note != 0;
              note = note->next)
         {
-            paint_text_color(app, text_layout, Ii64(note->todo_buf_title_pos, note->todo_buf_text_pos), finalize_color(defcolor_pop1, 0));
+            paint_text_color(app, text_layout, Ii64(note->todo_buf_title_pos, note->todo_buf_text_pos), title_color);
             paint_text_color(app, text_layout, Ii64_size(note->todo_buf_text_pos, note->text.size), foreground_color);
         }
     }
@@ -239,4 +241,60 @@ function void todo_list_render(Application_Links *app, Comment_Note_Table *table
     draw_text_layout_default(app, text_layout);
     draw_set_clip(app, old_clip);
     buffer_set_face(app, buffer, old_face);
+}
+
+CUSTOM_UI_COMMAND_SIG(jump_to_note)
+CUSTOM_DOC("List all comment notes and jump to one chosen by the user.")
+{
+    char *query = "Note:";
+    
+    Scratch_Block scratch(app);
+    Lister_Block lister(app, scratch);
+    lister_set_query(lister, query);
+    lister_set_default_handlers(lister);
+    
+    for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always);
+         buffer != 0;
+         buffer = get_buffer_next(app, buffer, Access_Always))
+    {
+        Comment_Note_File *file = get_comment_note_file(&todo_note_table, buffer);
+        if (!file) continue;
+        
+        for (Comment_Note *note = file->first;
+             note != 0;
+             note = note->next)
+        {
+            Tiny_Jump *jump = push_array(scratch, Tiny_Jump, 1);
+            jump->buffer = buffer;
+            jump->pos = note->location.pos;
+            
+            String_Const_u8 sort = {};
+            switch (note->kind){
+                case CommentNote_Todo:
+                {
+                    sort = string_u8_litexpr("TODO");
+                }break;
+                case CommentNote_Hack:
+                {
+                    sort = string_u8_litexpr("HACK");
+                }break;
+                case CommentNote_Note:
+                {
+                    sort = string_u8_litexpr("NOTE");
+                }break;
+            }
+            lister_add_item(lister, note->text, sort, jump, 0);
+        }
+    }
+    
+    Lister_Result l_result = run_lister(app, lister);
+    Tiny_Jump result = {};
+    if (!l_result.canceled && l_result.user_data != 0){
+        block_copy_struct(&result, (Tiny_Jump*)l_result.user_data);
+    }
+    
+    if (result.buffer != 0){
+        View_ID view = get_this_ctx_view(app, Access_Always);
+        jump_to_location(app, view, result.buffer, result.pos);
+    }
 }
