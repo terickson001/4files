@@ -6,6 +6,9 @@ function void tc_render_error_messages(Application_Links *app, Buffer_ID buffer,
     if (!buffer || !compilation_buffer)
         return;
     
+    if (buffer_get_size(app, buffer) > 1000)
+        return;
+    
     Scratch_Block scratch(app);
     
     Managed_Scope scope = buffer_get_managed_scope(app, compilation_buffer);
