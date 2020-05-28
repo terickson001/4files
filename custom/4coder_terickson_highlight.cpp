@@ -1,5 +1,82 @@
 #include <string>
 
+
+function ARGB_Color vec4_to_argb(Vec4_f32 color)
+{
+    u8 r = color.r*255;
+    u8 g = color.g*255;
+    u8 b = color.b*255;
+    u8 a = color.a*255;
+    ARGB_Color ret  = a << 24;
+    ret |= r << 16;
+    ret |= g << 8;
+    ret |= b << 0;
+    return ret;
+    
+}
+
+function Vec4_f32 argb_to_vec4(ARGB_Color color)
+{
+    Vec4_f32 ret = V4f32((color & 0x00FF0000) >> 16,
+                         (color & 0x0000FF00) >> 8,
+                         (color & 0x000000FF) >> 0,
+                         (color & 0xFF000000) >> 24
+                         );
+    ret /= 255;
+    printf("%08X -> %08X\n", color, vec4_to_argb(ret));
+    return ret;
+}
+
+function f32 rgb_to_grey(Vec4_f32 color)
+{
+    return color.r * 0.21f +
+        color.g * 0.72f +
+        color.b * 0.04f;
+}
+
+function void paint_text_color_amber(Application_Links* app,
+                                     Text_Layout_ID layout_id,
+                                     Range_i64 range,
+                                     ARGB_Color color)
+{
+    Vec4_f32 amber = argb_to_vec4(0xFFFFB000);
+    Vec4_f32 in_color = argb_to_vec4(color);
+    f32 grey = rgb_to_grey(in_color);
+    ARGB_Color out_color = vec4_to_argb(amber * grey);
+    paint_text_color(app, layout_id, range, out_color);
+}
+
+static void amberify(Application_Links *app)
+{
+    Arena *arena = &global_theme_arena;
+    
+    Vec4_f32 amber_vec = argb_to_vec4(0xFFFFB000);
+    Color_Table original = active_color_table;
+    Color_Table amber = make_color_table(app, arena);
+    for (int i = 0; i < original.count; i++)
+    {
+        for (int j = 0; j < original.arrays[i].count; j++)
+        {
+            Vec4_f32 color_vec = argb_to_vec4(original.arrays[i].vals[j]);
+            f32 grey = rgb_to_grey(color_vec);
+            amber_vec.a = color_vec.a;
+            amber.arrays[i].vals[j] = vec4_to_argb(amber_vec * grey);
+        }
+    }
+    
+    amber.arrays[defcolor_back] = make_colors(arena, 0xFF282828);
+    
+    amber.arrays[defcolor_margin] = make_colors(arena, 0xFF282828);
+    amber.arrays[defcolor_margin_hover] = make_colors(arena, 0xFF282828);
+    amber.arrays[defcolor_margin_active] = make_colors(arena, 0xFF282828);
+    amber.arrays[defcolor_list_item] = make_colors(arena, 0xFF282828);
+    amber.arrays[defcolor_list_item_hover] = make_colors(arena, 0xFF282828);
+    amber.arrays[defcolor_list_item_active] = make_colors(arena, 0xFF282828);
+    amber.arrays[defcolor_mark] = make_colors(arena, 0xFF282828);
+    
+    active_color_table = amber;
+}
+
 static void tc_paint_tokens(Application_Links *app, Buffer_ID buffer, Text_Layout_ID text_layout_id, Token_Array *array)
 {
     Scratch_Block scratch(app);

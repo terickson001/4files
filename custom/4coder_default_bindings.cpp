@@ -67,6 +67,8 @@ custom_layer_init(Application_Links *app)
     mapping_init(tctx, &framework_mapping);
     // setup_default_mapping(&framework_mapping, mapid_global, mapid_file, mapid_code);
     tc_setup_mapping(&framework_mapping, mapid_global, mapid_file, mapid_code);
+    
+    amberify(app);
 }
 
 #endif //FCODER_DEFAULT_BINDINGS
