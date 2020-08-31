@@ -420,8 +420,8 @@ CUSTOM_DOC("Shows a preview of the written function's parameter list")
         return; // Toggle
     }
     
-    current_function_preview.params = lang_indexer->parameter_strings(index, tc_global_arena);
-    current_function_preview.index = push_array(tc_global_arena, Function_Index, 1);
+    current_function_preview.params = lang_indexer->parameter_strings(index, &tc_global_arena);
+    current_function_preview.index = push_array(&tc_global_arena, Function_Index, 1);
     *current_function_preview.index = *index;
     current_function_preview.start_marker = alloc_buffer_markers_on_buffer(app, buffer, 1, 0);
     current_function_preview.end_marker = alloc_buffer_markers_on_buffer(app, buffer, 1, 0);

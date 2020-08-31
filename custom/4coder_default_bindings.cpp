@@ -14,7 +14,7 @@
 
 #include "generated/managed_id_metadata.cpp"
 
-global Arena *tc_global_arena = {};
+global Arena tc_global_arena = {};
 
 #include "4coder_terickson_language.cpp"
 
@@ -25,7 +25,6 @@ global Arena *tc_global_arena = {};
 #include "languages/glsl/glsl.cpp"
 #include "languages/gas/gas.cpp"
 #include "languages/nasm/nasm.cpp"
-
 #include "4coder_terickson_todo.cpp"
 #include "4coder_terickson_code_index.cpp"
 #include "4coder_terickson_jump.cpp"
@@ -48,13 +47,13 @@ custom_layer_init(Application_Links *app)
     default_framework_init(app);
     code_index_init();
     
-    tc_global_arena = reserve_arena(app);
+    tc_global_arena = make_arena_system();
 	init_language_cpp();
 	init_language_odin();
 	init_language_glsl();
 	init_language_gas();
 	init_language_nasm();
-    init_languages(app, tc_global_arena);
+    init_languages(app, &tc_global_arena);
     
     // NOTE(allen): default hooks and command maps
     set_all_default_hooks(app);

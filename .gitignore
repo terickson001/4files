@@ -10,6 +10,7 @@ README.txt
 changes.txt
 fonts
 project.4coder
+one_time
 
 themes/*
 !themes/theme-naysayer.4coder
@@ -43,7 +44,6 @@ custom/4coder_custom.cpp
 custom/4coder_default_colors.cpp
 custom/4coder_default_colors.h
 custom/4coder_default_framework.cpp
-custom/4coder_default_framework.h
 custom/4coder_default_framework_variables.cpp
 custom/4coder_default_hooks.cpp
 custom/4coder_default_include.cpp

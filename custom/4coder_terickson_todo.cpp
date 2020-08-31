@@ -68,10 +68,51 @@ function Comment_Note_File *get_comment_note_file(Comment_Note_Table *table, Buf
 function void set_comment_note_file(Comment_Note_Table *table, Buffer_ID buffer, Comment_Note_File *file)
 {
     if (!table->allocator)
-        *table = make_table_u64_u64(tc_global_arena->base_allocator, 32);
+        *table = make_table_u64_u64(tc_global_arena.base_allocator, 32);
     table_erase(table, buffer);
     table_insert(table, buffer, HandleAsU64(file));
 }
+
+function Arena *reserve_arena(Thread_Context *tctx, u64 chunk_size, u64 align)
+{
+    Arena_Node *node = tctx->free_arenas;
+    if (node  != 0)
+        sll_stack_pop(tctx->free_arenas);
+    else
+        node = push_array_zero(&tctx->node_arena, Arena_Node, 1);
+    node->arena = make_arena(tctx->allocator, chunk_size, align);
+    return(&node->arena);
+}
+
+function Arena *reserve_arena(Thread_Context *tctx, u64 chunk_size)
+{
+    return reserve_arena(tctx, chunk_size, 8);
+}
+
+function Arena *reserve_arena(Thread_Context *tctx)
+{
+    return reserve_arena(tctx, KB(64), 8);
+}
+
+function Arena *reserve_arena(Application_Links *app)
+{
+    Thread_Context *tctx = get_thread_context(app);
+    return reserve_arena(tctx);
+}
+
+function void release_arena(Thread_Context *tctx, Arena *arena)
+{
+    Arena_Node *node = CastFromMember(Arena_Node, arena, arena);
+    linalloc_clear(arena);
+    sll_stack_push(tctx->free_arenas, node);
+}
+
+function void release_arena(Application_Links *app, Arena *arena)
+{
+    Thread_Context *tctx = get_thread_context(app);
+    release_arena(tctx, arena);
+}
+
 
 function void todo_handle_comment(Application_Links *app, Arena *arena, Code_Index_File *index,
                                   Token *token, String_Const_u8 contents)
@@ -104,7 +145,7 @@ function void todo_handle_comment(Application_Links *app, Arena *arena, Code_Ind
         if (idx != str.size)
         {
             note.kind = CommentNote_Todo;
-            note.title = push_string_copy(tc_global_arena, string_substring(str, Ii64(idx, idx+TODO_STR.size)));
+            note.title = push_string_copy(&tc_global_arena, string_substring(str, Ii64(idx, idx+TODO_STR.size)));
             note.location = {index->buffer, token->pos+start_idx+idx};
             start_idx += idx+TODO_STR.size;
             
@@ -114,7 +155,7 @@ function void todo_handle_comment(Application_Links *app, Arena *arena, Code_Ind
         if (idx != str.size)
         {
             note.kind = CommentNote_Hack;
-            note.title = push_string_copy(tc_global_arena, string_substring(str, Ii64(idx, idx+HACK_STR.size)));
+            note.title = push_string_copy(&tc_global_arena, string_substring(str, Ii64(idx, idx+HACK_STR.size)));
             note.location = {index->buffer, token->pos+start_idx+idx};
             start_idx += idx+HACK_STR.size;
             

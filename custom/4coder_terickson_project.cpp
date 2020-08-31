@@ -42,7 +42,7 @@ function void tc_exec_project_command(Application_Links *app, Project_Command *c
         
         String_Const_u8 dir = current_project.dir;
         String_Const_u8 cmd = command->cmd;
-        exec_system_command(app, view, buffer_id, dir, cmd, flags);
+        exec_system_command(app, view, buffer_id, dir, cmd, flags|CLI_CursorAtEnd);
         if (set_fancy_font){
             set_fancy_compilation_buffer_font(app);
         }
