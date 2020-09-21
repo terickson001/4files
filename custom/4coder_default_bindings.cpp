@@ -19,6 +19,7 @@ global Arena tc_global_arena = {};
 #include "4coder_terickson_helper.cpp"
 
 #include "4coder_terickson_language.cpp"
+#include "4coder_terickson_code_index.cpp"
 
 // Extensions
 #include "4coder_terickson_function_index.cpp"
@@ -33,7 +34,6 @@ global Arena tc_global_arena = {};
 
 // Miscellaneous
 #include "4coder_terickson_todo.cpp"
-#include "4coder_terickson_code_index.cpp"
 #include "4coder_terickson_jump.cpp"
 #include "4coder_terickson_error_message.cpp"
 #include "4coder_terickson_scopeline.cpp"

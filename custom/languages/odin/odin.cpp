@@ -118,6 +118,7 @@ static Language language_def_odin = LANG_DEF("Odin", odin, ".odin");
 
 // Extensions
 #include "ext/function_indexer.cpp"
+#include "ext/std_include.cpp"
 
 function void init_language_odin()
 {
@@ -126,5 +127,9 @@ function void init_language_odin()
 #ifdef EXT_FUNCTION_INDEX
     Extension_Support findex_support = {EXT_FUNCTION_INDEX, make_data_struct(&odin_function_indexer)};
     language_add_extension(&language_def_odin, findex_support);
+#endif
+#ifdef EXT_STD_INCLUDE
+    Extension_Support std_include_support = {EXT_STD_INCLUDE, make_data_struct(&odin_std_includes)};
+    language_add_extension(&language_def_odin, std_include_support);
 #endif
 }

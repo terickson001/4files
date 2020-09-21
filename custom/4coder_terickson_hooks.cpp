@@ -228,6 +228,7 @@ BUFFER_HOOK_SIG(tc_begin_buffer){
     ProfileScope(app, "[TErickson] begin buffer");
     
     init_buffer(app, buffer_id);
+    load_std_includes(app, buffer_id);
     
     // no meaning for return
     return 0;

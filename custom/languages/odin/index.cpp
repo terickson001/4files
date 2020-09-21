@@ -48,6 +48,7 @@ function b32 odin_parse_decl(Code_Index_File *index, Generic_Parse_State *state,
                 return true;
             }break;
             
+            case TokenOdinKind_inline:
             case TokenOdinKind_proc: {
                 index_new_note(index, state, Ii64(ident), CodeIndexNote_Function, parent);
                 return true;

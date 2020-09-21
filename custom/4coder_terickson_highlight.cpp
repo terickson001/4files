@@ -124,7 +124,7 @@ static void tc_paint_tokens(Application_Links *app, Buffer_ID buffer, Text_Layou
                  buf != 0;
                  buf = get_buffer_next(app, buf, Access_Always))
             {
-                if (buffer_get_language(app, buf) != buffer_get_language(app, buffer)) continue;
+                if (*buffer_get_language(app, buf) != *buffer_get_language(app, buffer)) continue;
                 
                 Code_Index_Table *code_index = get_code_index_table(&code_index_tables, buf);
                 if (code_index == 0)
@@ -134,50 +134,54 @@ static void tc_paint_tokens(Application_Links *app, Buffer_ID buffer, Text_Layou
                 Code_Index_Note_List *list;
                 b32 res = table_read(&code_index->notes, lookup, (u64 *)&list);
                 if (!res || !list || !list->first) continue;
-                Code_Index_Note *note = list->first;
                 
-                switch (note->note_kind)
+                for (Code_Index_Note *note = list->first; note; note = note->next)
                 {
-                    case CodeIndexNote_Type:
+                    switch (note->note_kind)
                     {
-                        custom_note_color_used = true;
-                        Range_i64 range = {};
-                        range.start = token->pos;
-                        range.end = token->pos + token->size;
-                        paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_type_name));
-                    } break;
-                    case CodeIndexNote_Macro:
-                    case CodeIndexNote_Function:
-                    {
-                        Token *peek;
-                        do
+                        case CodeIndexNote_Type:
                         {
-                            token_it_inc_all(&it);
-                            peek = token_it_read(&it);
-                        } while (peek->kind == TokenBaseKind_Whitespace);
-                        it = token_iterator(it.user_id, it.tokens, it.count, token);
-                        
-                        b32 invalid = false;
-                        if (string_match((*language)->name, SCu8("CPP"), StringMatch_Exact))
+                            custom_note_color_used = true;
+                            Range_i64 range = {};
+                            range.start = token->pos;
+                            range.end = token->pos + token->size;
+                            paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_type_name));
+                        } break;
+                        case CodeIndexNote_Macro:
+                        case CodeIndexNote_Function:
                         {
-                            invalid = peek->sub_kind != TokenCppKind_ParenOp;
-                        }
-                        else if (string_match((*language)->name, SCu8("Odin"), StringMatch_Exact))
-                        {
-                            invalid = peek->sub_kind != TokenOdinKind_ParenOp &&
-                                peek->sub_kind != TokenOdinKind_ColonColon;
-                        }
+                            Token *peek;
+                            do
+                            {
+                                token_it_inc_all(&it);
+                                peek = token_it_read(&it);
+                            } while (peek->kind == TokenBaseKind_Whitespace);
+                            it = token_iterator(it.user_id, it.tokens, it.count, token);
+                            
+                            b32 invalid = false;
+                            if (string_match((*language)->name, SCu8("CPP"), StringMatch_Exact))
+                            {
+                                invalid = peek->sub_kind != TokenCppKind_ParenOp;
+                            }
+                            else if (string_match((*language)->name, SCu8("Odin"), StringMatch_Exact))
+                            {
+                                invalid = peek->sub_kind != TokenOdinKind_ParenOp &&
+                                    peek->sub_kind != TokenOdinKind_ColonColon;
+                            }
+                            
+                            if (invalid) continue;
+                            custom_note_color_used = true;
+                            
+                            Range_i64 range = {};
+                            range.start = token->pos;
+                            range.end = token->pos + token->size;
+                            paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_function_name));
+                        } break;
                         
-                        if (invalid) break;
-                        custom_note_color_used = true;
-                        
-                        Range_i64 range = {};
-                        range.start = token->pos;
-                        range.end = token->pos + token->size;
-                        paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_function_name));
-                    } break;
+                        default: continue;
+                    }
+                    break;
                 }
-                break;
             }
         }
         // END: Check Notes

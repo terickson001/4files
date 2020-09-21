@@ -81,24 +81,29 @@ Function_Index_List function_indices_from_token(Application_Links *app, Arena *a
 {
     Function_Index_List indices = {0};
     String_Const_u8 ident = push_buffer_range(app, arena, buffer, Ii64(&token));
+    Data str_data = *(Data *)&ident;
     
     for (Buffer_ID buf = get_buffer_next(app, 0, Access_Always);
          buf != 0;
          buf = get_buffer_next(app, buf, Access_Always))
     {
-        if (buffer_get_language(app, buf) != buffer_get_language(app, buffer)) continue;
-        Code_Index_File *file = code_index_get_file(buf);
-        if (file == 0)
+        if (*buffer_get_language(app, buf) != *buffer_get_language(app, buffer)) continue;
+        Code_Index_Table *code_index = get_code_index_table(&code_index_tables, buf);
+        if (code_index == 0)
             continue;
         
-        for (i32 i = 0; i < file->note_array.count; i++)
+        Table_Lookup lookup = table_lookup(&code_index->notes, str_data);
+        Code_Index_Note_List *list;
+        b32 res = table_read(&code_index->notes, lookup, (u64 *)&list);
+        if (!res || !list) continue;
+        
+        for (Code_Index_Note *note = list->first; note; note = note->next)
         {
-            Code_Index_Note *note = file->note_array.ptrs[i];
-            
             if (note->note_kind == CodeIndexNote_Function &&
                 string_match(note->text, ident, StringMatch_Exact))
             {
                 Function_Index *index = indexer->parse_function(app, note, arena);
+                if (!index) continue;
                 index->indexer = indexer;
                 sll_queue_push(indices.first, indices.last, index);
                 indices.count++;
