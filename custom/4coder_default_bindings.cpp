@@ -16,15 +16,22 @@
 
 global Arena tc_global_arena = {};
 
+#include "4coder_terickson_helper.cpp"
+
 #include "4coder_terickson_language.cpp"
 
+// Extensions
 #include "4coder_terickson_function_index.cpp"
+#include "4coder_terickson_std_include.cpp"
 
+// Languages
 #include "languages/cpp/cpp.cpp"
 #include "languages/odin/odin.cpp"
 #include "languages/glsl/glsl.cpp"
 #include "languages/gas/gas.cpp"
 #include "languages/nasm/nasm.cpp"
+
+// Miscellaneous
 #include "4coder_terickson_todo.cpp"
 #include "4coder_terickson_code_index.cpp"
 #include "4coder_terickson_jump.cpp"
@@ -67,7 +74,7 @@ custom_layer_init(Application_Links *app)
     // setup_default_mapping(&framework_mapping, mapid_global, mapid_file, mapid_code);
     tc_setup_mapping(&framework_mapping, mapid_global, mapid_file, mapid_code);
     
-    amberify(app);
+    // amberify(app);
 }
 
 #endif //FCODER_DEFAULT_BINDINGS

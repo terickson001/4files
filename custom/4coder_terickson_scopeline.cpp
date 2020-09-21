@@ -10,13 +10,10 @@ CUSTOM_DOC("Toggle scope annotations")
 
 function void tc_render_scopeline(Application_Links *app, Buffer_ID buffer, View_ID view, Text_Layout_ID text_layout_id)
 {
-    if (!use_scopeline)
+    if (!use_scopeline || !buffer)
         return;
     
     ProfileScope(app, "[TErickson] ScopeLine");
-    
-    if (!buffer)
-        return;
     
     Scratch_Block scratch(app);
     

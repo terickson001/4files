@@ -86,6 +86,7 @@ Function_Index_List function_indices_from_token(Application_Links *app, Arena *a
          buf != 0;
          buf = get_buffer_next(app, buf, Access_Always))
     {
+        if (buffer_get_language(app, buf) != buffer_get_language(app, buffer)) continue;
         Code_Index_File *file = code_index_get_file(buf);
         if (file == 0)
             continue;
@@ -187,12 +188,11 @@ function void function_index_render_preview(Application_Links *app, Buffer_ID bu
         return; // Out of params
     }
     
-    String_Const_u8 param_delim_space = push_stringf(scratch, "%.*s ", string_expand(delims.parameter_str));
-    String_Const_u8 flattened = string_list_flatten(scratch, indexed_params, param_delim_space, 0, 0);
-    String_Const_u8 parameters = push_stringf(scratch, "%.*s%.*s",
-                                              string_expand(flattened),
-                                              string_expand(delims.close_str)
-                                              );
+    // pop first parameter
+    String_Const_u8 active_param = indexed_params.first->string;
+    indexed_params.first = indexed_params.first->next;
+    indexed_params.node_count -= 1;
+    indexed_params.total_size -= active_param.size;
     
     Face_ID face_id = get_face_id(app, buffer);
     Face_Metrics metrics = get_face_metrics(app, face_id);
@@ -200,16 +200,30 @@ function void function_index_render_preview(Application_Links *app, Buffer_ID bu
     Rect_f32 start_rect = text_layout_character_on_screen(app, text_layout_id, end_marker->pos);
     
     u32 color = finalize_color(defcolor_comment, 0);
-    color &= 0x00ffffff;
-    color |= 0x80000000;
+    
     Vec2_f32 draw_pos =
     {
         start_rect.x0 + metrics.space_advance,
         start_rect.y0,
     };
     
-    draw_string(app, face_id, parameters, draw_pos, color);
+    draw_pos = draw_string(app, face_id, active_param, draw_pos, color);
     
+    color &= 0x00ffffff;
+    color |= 0x80000000;
+    if (indexed_params.node_count > 0)
+    {
+        String_Const_u8 param_delim_space = push_stringf(scratch, "%.*s ", string_expand(delims.parameter_str));
+        String_Const_u8 flattened = string_list_flatten(scratch, indexed_params, param_delim_space, 0, 0);
+        String_Const_u8 parameters = push_stringf(scratch, "%.*s%.*s",
+                                                  string_expand(param_delim_space),
+                                                  string_expand(flattened)
+                                                  );
+        
+        draw_pos = draw_string(app, face_id, parameters, draw_pos, color);
+    }
+    
+    draw_pos = draw_string(app, face_id, delims.close_str, draw_pos, color);
 }
 
 function void function_index_menu_render(Application_Links *app, Frame_Info frame_info, View_ID view)
@@ -358,6 +372,7 @@ CUSTOM_DOC("Shows a preview of the written function's parameter list")
         return;
     
     lang_indexer = (Language_Function_Indexer *)ext_support->ext_interface.data;
+    Language_Function_Delimiters delims = lang_indexer->delims;
     
     if (!lang_indexer)
         return;
@@ -373,12 +388,38 @@ CUSTOM_DOC("Shows a preview of the written function's parameter list")
     Function_Index_List indices = {0};
     i64 token_start = token_index;
     b32 is_open = false;
+    i64 open_pos = 0;
     if (tokens->tokens[token_index].kind == TokenBaseKind_Identifier)
     {
+        Token token = tokens->tokens[token_index];
         indices = function_indices_from_token(app, scratch, buffer,
-                                              tokens->tokens[token_index], lang_indexer);
+                                              token, lang_indexer);
+        
         if (indices.count == 0)
             return;
+        
+        i64 insert_point = Ii64(&token).max;
+        i64 peek_token_index = token_index+1;
+        while (peek_token_index &&
+               (tokens->tokens[peek_token_index].kind == TokenBaseKind_Whitespace ||
+                tokens->tokens[peek_token_index].kind == TokenBaseKind_Comment))
+            peek_token_index++;
+        if (tokens->tokens[peek_token_index].sub_kind == lang_indexer->delims.open)
+        {
+            open_pos = Ii64(&tokens->tokens[peek_token_index]).max;
+            view_set_cursor(app, view, seek_pos(open_pos));
+        }
+        else
+        {
+            Buffer_Insertion insert = begin_buffer_insertion_at(app, buffer, insert_point);
+            insert_string(&insert, delims.open_str);
+            end_buffer_insertion(&insert);
+            
+            open_pos = insert_point+delims.open_str.size;
+            view_set_cursor(app, view, seek_pos(open_pos));
+        }
+        
+        is_open = true;
         
     }
     else if (tokens->tokens[token_index].sub_kind == lang_indexer->delims.open)
@@ -396,6 +437,7 @@ CUSTOM_DOC("Shows a preview of the written function's parameter list")
         
         indices = function_indices_from_token(app, scratch, buffer,
                                               tokens->tokens[token_index], lang_indexer);
+        open_pos = Ii64(&tokens->tokens[token_start]).max;
         if (indices.count == 0)
             return;
     }
@@ -425,7 +467,7 @@ CUSTOM_DOC("Shows a preview of the written function's parameter list")
     *current_function_preview.index = *index;
     current_function_preview.start_marker = alloc_buffer_markers_on_buffer(app, buffer, 1, 0);
     current_function_preview.end_marker = alloc_buffer_markers_on_buffer(app, buffer, 1, 0);
-    Marker marker = {Ii64(&tokens->tokens[token_start]).max, false};
+    Marker marker = {open_pos, false};
     managed_object_store_data(app, current_function_preview.start_marker, 0, 1, &marker);
     managed_object_store_data(app, current_function_preview.end_marker, 0, 1, &marker);
     

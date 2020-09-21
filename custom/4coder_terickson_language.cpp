@@ -22,6 +22,7 @@ function void init_languages(Application_Links *app, Arena *arena)
          lang = lang->next)
     {
         lang->file_extensions = parse_extension_line_to_extension_list(app, arena, lang->ext_string);
+        //lang->code_index_map = make_table_Data_Data(arena, 128);
     }
 }
 

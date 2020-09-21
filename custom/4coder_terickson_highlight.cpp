@@ -1,6 +1,5 @@
 #include <string>
 
-
 function ARGB_Color vec4_to_argb(Vec4_f32 color)
 {
     u8 r = color.r*255;
@@ -119,65 +118,66 @@ static void tc_paint_tokens(Application_Links *app, Buffer_ID buffer, Text_Layou
             !field)
         {
             String_Const_u8 token_as_string = push_token_lexeme(app, scratch, buffer, token);
+            Data str_data = *(Data *)&token_as_string;
             
             for (Buffer_ID buf = get_buffer_next(app, 0, Access_Always);
                  buf != 0;
                  buf = get_buffer_next(app, buf, Access_Always))
             {
-                Code_Index_File *file = code_index_get_file(buf);
-                if (file == 0)
+                if (buffer_get_language(app, buf) != buffer_get_language(app, buffer)) continue;
+                
+                Code_Index_Table *code_index = get_code_index_table(&code_index_tables, buf);
+                if (code_index == 0)
                     continue;
                 
-                for (i32 i = 0; i < file->note_array.count; i++)
+                Table_Lookup lookup = table_lookup(&code_index->notes, str_data);
+                Code_Index_Note_List *list;
+                b32 res = table_read(&code_index->notes, lookup, (u64 *)&list);
+                if (!res || !list || !list->first) continue;
+                Code_Index_Note *note = list->first;
+                
+                switch (note->note_kind)
                 {
-                    Code_Index_Note *note = file->note_array.ptrs[i];
-                    
-                    if (string_match(note->text, token_as_string, StringMatch_Exact))
+                    case CodeIndexNote_Type:
                     {
-                        switch (note->note_kind)
+                        custom_note_color_used = true;
+                        Range_i64 range = {};
+                        range.start = token->pos;
+                        range.end = token->pos + token->size;
+                        paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_type_name));
+                    } break;
+                    case CodeIndexNote_Macro:
+                    case CodeIndexNote_Function:
+                    {
+                        Token *peek;
+                        do
                         {
-                            case CodeIndexNote_Type:
-                            {
-                                custom_note_color_used = true;
-                                Range_i64 range = {};
-                                range.start = token->pos;
-                                range.end = token->pos + token->size;
-                                paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_type_name));
-                            } break;
-                            case CodeIndexNote_Macro:
-                            case CodeIndexNote_Function:
-                            {
-                                Token *peek;
-                                do
-                                {
-                                    token_it_inc_all(&it);
-                                    peek = token_it_read(&it);
-                                } while (peek->kind == TokenBaseKind_Whitespace);
-                                it = token_iterator(it.user_id, it.tokens, it.count, token);
-                                
-                                b32 invalid = false;
-                                if (string_match((*language)->name, SCu8("CPP"), StringMatch_Exact))
-                                {
-                                    invalid = peek->sub_kind != TokenCppKind_ParenOp;
-                                }
-                                else if (string_match((*language)->name, SCu8("Odin"), StringMatch_Exact))
-                                {
-                                    invalid = peek->sub_kind != TokenOdinKind_ParenOp &&
-                                        peek->sub_kind != TokenOdinKind_ColonColon;
-                                }
-                                
-                                if (invalid) break;
-                                custom_note_color_used = true;
-                                
-                                Range_i64 range = {};
-                                range.start = token->pos;
-                                range.end = token->pos + token->size;
-                                paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_function_name));
-                            } break;
+                            token_it_inc_all(&it);
+                            peek = token_it_read(&it);
+                        } while (peek->kind == TokenBaseKind_Whitespace);
+                        it = token_iterator(it.user_id, it.tokens, it.count, token);
+                        
+                        b32 invalid = false;
+                        if (string_match((*language)->name, SCu8("CPP"), StringMatch_Exact))
+                        {
+                            invalid = peek->sub_kind != TokenCppKind_ParenOp;
                         }
-                        break;
-                    }
+                        else if (string_match((*language)->name, SCu8("Odin"), StringMatch_Exact))
+                        {
+                            invalid = peek->sub_kind != TokenOdinKind_ParenOp &&
+                                peek->sub_kind != TokenOdinKind_ColonColon;
+                        }
+                        
+                        if (invalid) break;
+                        custom_note_color_used = true;
+                        
+                        Range_i64 range = {};
+                        range.start = token->pos;
+                        range.end = token->pos + token->size;
+                        paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_function_name));
+                    } break;
                 }
+                break;
             }
         }
         // END: Check Notes
@@ -260,7 +260,8 @@ static void tc_render_buffer(Application_Links *app, View_ID view_id, Face_ID fa
         }
     }
     
-    tc_render_scopeline(app, buffer, active_view, text_layout_id);
+    if (is_active_view)
+        tc_render_scopeline(app, buffer, active_view, text_layout_id);
     function_index_render_preview(app, buffer, active_view, text_layout_id);
     
     

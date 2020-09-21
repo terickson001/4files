@@ -3,41 +3,41 @@
 
 typedef struct Extension_Support
 {
-     String_Const_u8 ext_name;
-     Data ext_interface;
+    String_Const_u8 ext_name;
+    Data ext_interface;
 } Extension_Support;
 
 typedef Table_Data_Data Extension_Support_Table;
 
 typedef struct Comment_Delimiters
 {
-     String_Const_u8 line;
-     String_Const_u8 block_start;
-     String_Const_u8 block_end;
+    String_Const_u8 line;
+    String_Const_u8 block_start;
+    String_Const_u8 block_end;
 } Comment_Delimiters;
 
 typedef Data Generic_Lex_State;
 
 struct Language
 {
-     String_Const_u8 name;
-     String_Const_u8 ext_string;
-     char **token_kind_names;
-     Comment_Delimiters comment_delims;
-     // @note(tyler): These are required for a cancellable lexer,
-     //               but the `Lex_State_{}` is specific to each language
-     void (*lex_init)(Arena *arena, Generic_Lex_State *state, String_Const_u8 input);
-     b32 (*lex_breaks)(Arena *arena, Token_List *list, Generic_Lex_State *state_ptr, u64 max);
-     
-     Token_List (*lex_full_input)(Arena *arena, String_Const_u8 input);
-     b32 (*try_index)(Code_Index_File *index, Generic_Parse_State *state);
-     FColor (*get_token_color)(Token token);
-     Parsed_Jump (*parse_jump_location)(String_Const_u8 line);
-     
-     Extension_Support_Table extension_support;
-     String_Const_u8_Array file_extensions;
-     
-     Language *next;
+    String_Const_u8 name;
+    String_Const_u8 ext_string;
+    char **token_kind_names;
+    Comment_Delimiters comment_delims;
+    // @note(tyler): These are required for a cancellable lexer,
+    //               but the `Lex_State_{}` is specific to each language
+    void (*lex_init)(Arena *arena, Generic_Lex_State *state, String_Const_u8 input);
+    b32 (*lex_breaks)(Arena *arena, Token_List *list, Generic_Lex_State *state_ptr, u64 max);
+    
+    Token_List (*lex_full_input)(Arena *arena, String_Const_u8 input);
+    b32 (*try_index)(Code_Index_File *index, Generic_Parse_State *state);
+    FColor (*get_token_color)(Token token);
+    Parsed_Jump (*parse_jump_location)(String_Const_u8 line);
+    
+    Extension_Support_Table extension_support;
+    String_Const_u8_Array file_extensions;
+    
+    Language *next;
 };
 
 #define LEX_INIT_DEF(NAME, LEX_STATE) \
@@ -71,10 +71,10 @@ NAME##_parse_jump_location \
 
 struct Language_List
 {
-     Language *first;
-     Language *last;
-     
-     i64 count;
+    Language *first;
+    Language *last;
+    
+    i64 count;
 };
 
 global Language_List languages = {0};

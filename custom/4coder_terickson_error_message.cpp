@@ -15,6 +15,7 @@ function void tc_render_error_messages(Application_Links *app, Buffer_ID buffer,
     List_String_Const_u8 *msg_list = scope_attachment(app, scope, buffer_errors, List_String_Const_u8);
     Marker_List *markers = tc_get_or_make_list_for_buffer(app, heap, compilation_buffer);
     if (!markers) return;
+    
     Sticky_Jump_Stored *jump_array = push_array(scratch, Sticky_Jump_Stored, markers->jump_count);
     managed_object_load_data(app, markers->jump_array, 0, markers->jump_count, jump_array);
     

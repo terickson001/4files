@@ -133,6 +133,33 @@ function b32 tc_generic_parse_scope_paren(Code_Index_File *index, Generic_Parse_
     return false;
 }
 
+struct Code_Index_Table
+{
+    Buffer_ID buffer;
+    Arena *arena;
+    Table_Data_u64 notes;
+};
+
+global Table_u64_u64 code_index_tables = {0};
+
+function Code_Index_Table *get_code_index_table(Table_u64_u64 *table, Buffer_ID buffer)
+{
+    Code_Index_Table *code_index;
+    Table_Lookup lookup = table_lookup(table, buffer);
+    b32 res = table_read(table, lookup, (u64*)&code_index);
+    if (res)
+        return code_index;
+    return 0;
+}
+
+function void set_code_index_table(Table_u64_u64 *table, Buffer_ID buffer, Code_Index_Table *code_index)
+{
+    if (!table->allocator)
+        *table = make_table_u64_u64(tc_global_arena.base_allocator, 32);
+    table_erase(table, buffer);
+    table_insert(table, buffer, HandleAsU64(code_index));
+}
+
 function b32 tc_generic_parse_full_input_breaks(Code_Index_File *index, Generic_Parse_State *state, i32 limit)
 {
     b32 result = false;
@@ -140,6 +167,18 @@ function b32 tc_generic_parse_full_input_breaks(Code_Index_File *index, Generic_
     Managed_Scope scope = buffer_get_managed_scope(state->app, index->buffer);
     Language **language = scope_attachment(state->app, scope, buffer_language, Language*);
     if (!*language) return true;
+    
+    Code_Index_Table *code_index = get_code_index_table(&code_index_tables, index->buffer);
+    if (code_index)
+        release_arena(state->app, code_index->arena);
+    {
+        Arena *index_arena = reserve_arena(state->app);
+        code_index = push_array_zero(index_arena, Code_Index_Table, 1);
+        code_index->buffer = index->buffer;
+        code_index->arena = index_arena;
+        code_index->notes = make_table_Data_u64(index_arena->base_allocator, 64);
+        set_code_index_table(&code_index_tables, index->buffer, code_index);
+    }
     
     i64 first_index = token_it_index(&state->it);
     i64 one_past_last_index = first_index + limit;
@@ -170,6 +209,25 @@ function b32 tc_generic_parse_full_input_breaks(Code_Index_File *index, Generic_
     if (result){
         index->nest_array = code_index_nest_ptr_array_from_list(state->arena, &index->nest_list);
         index->note_array = code_index_note_ptr_array_from_list(state->arena, &index->note_list);
+        for (int i = 0; i < index->note_array.count; i++)
+        {
+            Data str_data = *(Data *)&index->note_array.ptrs[i]->text;
+            Table_Lookup lookup = table_lookup(&code_index->notes, str_data);
+            Code_Index_Note_List *list;
+            b32 res = table_read(&code_index->notes, lookup, (u64 *)&list);
+            if (res)
+            {
+                sll_queue_push(list->first, list->last, index->note_array.ptrs[i]);
+            }
+            else
+            {
+                Code_Index_Note_List *list = push_array_zero(code_index->arena, Code_Index_Note_List, 1);
+                Code_Index_Note *note = push_array_write(code_index->arena, Code_Index_Note, 1, index->note_array.ptrs[i]);
+                sll_queue_push(list->first, list->last, note);
+                table_insert(&code_index->notes, str_data, HandleAsU64(list));
+            }
+        }
+        
     }
     
     return(result);
