@@ -187,8 +187,11 @@ function void write_todos_to_buffer(Application_Links *app, Buffer_ID buffer, Co
     
 }
 
+global bool todo_window_open = false;
 function void todo_list_render(Application_Links *app, Comment_Note_Table *table, Rect_f32 rect)
 {
+    if (!todo_window_open) return;
+    
     ARGB_Color background_color = fcolor_resolve(fcolor_id(defcolor_back));
     ARGB_Color border_color = fcolor_resolve(fcolor_id(defcolor_margin_active));
     ARGB_Color foreground_color = fcolor_resolve(fcolor_id(defcolor_text_default));
@@ -241,6 +244,12 @@ function void todo_list_render(Application_Links *app, Comment_Note_Table *table
     draw_text_layout_default(app, text_layout);
     draw_set_clip(app, old_clip);
     buffer_set_face(app, buffer, old_face);
+}
+
+CUSTOM_UI_COMMAND_SIG(toggle_todo_window)
+CUSTOM_DOC("Toggle TODO window")
+{
+    todo_window_open = !todo_window_open;
 }
 
 CUSTOM_UI_COMMAND_SIG(jump_to_note)

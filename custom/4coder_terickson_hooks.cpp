@@ -109,8 +109,6 @@ tc_do_full_lex_async__inner(Async_Context *actx, Buffer_ID buffer_id){
     Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);
     Language **language = scope_attachment(app, scope, buffer_language, Language*);
     
-    // @todo(tyler): Make cancellable
-    // list = (*language)->lex_full_input(scratch, contents);
     Generic_Lex_State state = {};
     (*language)->lex_init(scratch, &state, contents);
     for (;;){
@@ -392,7 +390,7 @@ function void tc_whole_screen_render_caller(Application_Links *app, Frame_Info f
     f32 h = 320;
     f32 p = 32;
     Rect_f32 rect = {region.x1 - (w+p), region.y0 + p, region.x1 - p, region.y0 + (h+p)};
-    // todo_list_render(app, 0, rect);
+    todo_list_render(app, 0, rect);
 }
 
 function void tc_tick(Application_Links *app, Frame_Info frame_info)
