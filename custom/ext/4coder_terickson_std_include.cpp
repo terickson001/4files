@@ -4,6 +4,12 @@ typedef String_Const_u8_Array Standard_Includes;
 
 global Table_u64_u64 loaded_std_includes = {0};
 
+bool load_std_includes(Application_Links *app, Buffer_ID buffer);
+void init_ext_std_include()
+{
+    language_push_hook(Hook_PostBeginBuffer, (Void_Func *)load_std_includes);
+}
+
 bool load_std_includes(Application_Links *app, Buffer_ID buffer)
 {
     Language *language = *buffer_get_language(app, buffer);

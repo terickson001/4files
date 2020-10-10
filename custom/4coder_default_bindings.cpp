@@ -10,6 +10,7 @@
 #include "4coder_default_include.cpp"
 
 // NOTE(allen): Users can declare their own managed IDs here.
+#include "4coder_language_ids.cpp"
 #include "4coder_terickson_ids.cpp"
 
 #include "generated/managed_id_metadata.cpp"
@@ -19,11 +20,11 @@ global Arena tc_global_arena = {};
 #include "4coder_terickson_helper.cpp"
 
 #include "4coder_terickson_language.cpp"
-#include "4coder_terickson_code_index.cpp"
 
 // Extensions
-#include "4coder_terickson_function_index.cpp"
-#include "4coder_terickson_std_include.cpp"
+#include "ext/4coder_terickson_function_index.cpp"
+#include "ext/4coder_terickson_std_include.cpp"
+#include "ext/4coder_terickson_todo.cpp"
 
 // Languages
 #include "languages/cpp/cpp.cpp"
@@ -33,8 +34,6 @@ global Arena tc_global_arena = {};
 #include "languages/nasm/nasm.cpp"
 
 // Miscellaneous
-#include "4coder_terickson_todo.cpp"
-#include "4coder_terickson_jump.cpp"
 #include "4coder_terickson_error_message.cpp"
 #include "4coder_terickson_scopeline.cpp"
 #include "4coder_terickson_highlight.cpp"
@@ -49,32 +48,38 @@ void
 custom_layer_init(Application_Links *app)
 {
     Thread_Context *tctx = get_thread_context(app);
+    tc_global_arena = make_arena_system();
     
     // NOTE(allen): setup for default framework
     default_framework_init(app);
     code_index_init();
     
-    tc_global_arena = make_arena_system();
+    // Multi-Language Support
+    init_ext_language();
+    
+    // Language Dependent Extensions
+    init_ext_std_include();
+    init_ext_todo();
+    
+    // Language Definitions
 	init_language_cpp();
 	init_language_odin();
 	init_language_glsl();
 	init_language_gas();
 	init_language_nasm();
-    init_languages(app, &tc_global_arena);
+    
+    // Some Processing on Language Definitions
+    finalize_languages(app);
     
     // NOTE(allen): default hooks and command maps
     set_all_default_hooks(app);
+    set_language_hooks(app);
     set_custom_hook(app, HookID_WholeScreenRenderCaller, tc_whole_screen_render_caller);
     set_custom_hook(app, HookID_RenderCaller, tc_render_caller);
-    set_custom_hook(app, HookID_BeginBuffer, tc_begin_buffer);
-    set_custom_hook(app, HookID_BufferEditRange, tc_buffer_edit_range);
-    set_custom_hook(app, HookID_Tick, tc_tick);
     
     mapping_init(tctx, &framework_mapping);
-    // setup_default_mapping(&framework_mapping, mapid_global, mapid_file, mapid_code);
+    setup_default_mapping(&framework_mapping, mapid_global, mapid_file, mapid_code);
     tc_setup_mapping(&framework_mapping, mapid_global, mapid_file, mapid_code);
-    
-    // amberify(app);
 }
 
 #endif //FCODER_DEFAULT_BINDINGS

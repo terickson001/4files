@@ -114,8 +114,8 @@ tc_setup_mapping(Mapping *mapping, i64 global_id, i64 file_id, i64 code_id){
     Bind(undo,                        KeyCode_Z, KeyCode_Control);
     Bind(view_buffer_other_panel,     KeyCode_1, KeyCode_Control);
     Bind(swap_panels,                 KeyCode_2, KeyCode_Control);
-    Bind(tc_if_read_only_goto_position,  KeyCode_Return);
-    Bind(tc_if_read_only_goto_position_same_panel, KeyCode_Return, KeyCode_Shift);
+    Bind(language_if_read_only_goto_position,  KeyCode_Return);
+    Bind(language_if_read_only_goto_position_same_panel, KeyCode_Return, KeyCode_Shift);
     Bind(view_jump_list_with_lister,  KeyCode_Period, KeyCode_Control, KeyCode_Shift);
     
     SelectMap(code_id);

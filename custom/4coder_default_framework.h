@@ -46,7 +46,6 @@ struct Parsed_Jump {
     b32 sub_jump_note;
     b32 is_ms_style;
     b32 has_rust_arrow;
-    String_Const_u8 msg; // @todo(Tyler): MOVE OUT
 };
 
 struct ID_Pos_Jump_Location_Array{

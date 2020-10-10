@@ -41,6 +41,15 @@ global Comment_Note_Table todo_note_table;
 
 global Buffer_Identifier todo_buffer_id = buffer_identifier(SCu8("*TODO*"));
 
+function void todo_handle_comment(Application_Links *app, Arena *arena, Code_Index_File *index,
+                                  Token *token, String_Const_u8 contents);
+function void todo_post_index(Application_Links *app, Code_Index_File *index);
+function void init_ext_todo()
+{
+    language_push_hook(Hook_HandleComment, (Void_Func *)&todo_handle_comment);
+    language_push_hook(Hook_PostIndex, (Void_Func *)&todo_post_index);
+}
+
 function void push_comment_note(Comment_Note_File *file, Comment_Note *note)
 {
     sll_queue_push(file->first, file->last, note);
@@ -136,6 +145,13 @@ function void todo_handle_comment(Application_Links *app, Arena *arena, Code_Ind
         push_comment_note(file, note, file->arena);
         break;
     }
+}
+
+function void todo_post_index(Application_Links *app, Code_Index_File *index)
+{
+    Comment_Note_File *file = get_comment_note_file(&todo_note_table, index->buffer);
+    if (file)
+        file->finished = true;
 }
 
 function void write_todos_to_buffer(Application_Links *app, Buffer_ID buffer, Comment_Note_Table *table)

@@ -13,7 +13,7 @@ function void tc_render_error_messages(Application_Links *app, Buffer_ID buffer,
     
     Managed_Scope scope = buffer_get_managed_scope(app, compilation_buffer);
     List_String_Const_u8 *msg_list = scope_attachment(app, scope, buffer_errors, List_String_Const_u8);
-    Marker_List *markers = tc_get_or_make_list_for_buffer(app, heap, compilation_buffer);
+    Marker_List *markers = language_get_or_make_list_for_buffer(app, heap, compilation_buffer);
     if (!markers) return;
     
     Sticky_Jump_Stored *jump_array = push_array(scratch, Sticky_Jump_Stored, markers->jump_count);

@@ -97,7 +97,7 @@ function Parsed_Jump odin_parse_jump_location(String_Const_u8 line)
         jump.location.line   = (i32)string_to_integer(line_number, 10);
         jump.location.column = (i32)string_to_integer(column_number, 10);
         jump.colon_position = (i32)(rparen_pos);
-        jump.msg = message;
+        // jump.msg = message;
         jump.success = true;
     }
     

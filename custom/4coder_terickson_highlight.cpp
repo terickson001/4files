@@ -76,127 +76,6 @@ static void amberify(Application_Links *app)
     active_color_table = amber;
 }
 
-static void tc_paint_tokens(Application_Links *app, Buffer_ID buffer, Text_Layout_ID text_layout_id, Token_Array *array)
-{
-    Scratch_Block scratch(app);
-    FColor col = {0};
-    
-    Managed_Scope scope = buffer_get_managed_scope(app, buffer);
-    Language **language = scope_attachment(app, scope, buffer_language, Language*);
-    
-    if (array->tokens == 0)
-        return;
-    
-    Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);
-    i64 first_index = token_index_from_pos(array, visible_range.first);
-    Token_Iterator_Array it = token_iterator_index(0, array, first_index);
-    
-    for (;;)
-    {
-        Token *token = token_it_read(&it);
-        
-        if (token->pos >= visible_range.end+1)
-            break;
-        
-        // Check if Field
-        b32 field = false;
-        if (token->sub_kind == TokenCppKind_Dot ||
-            token->sub_kind == TokenCppKind_Arrow)
-        {
-            FColor color = (*language)->get_token_color(*token);
-            paint_text_color_fcolor(app, text_layout_id, Ii64_size(token->pos, token->size), color);
-            token_it_inc_all(&it);
-            token = token_it_read(&it);
-            if (token->kind == TokenBaseKind_Identifier)
-                field = true;
-        }
-        // END: Check if Field
-        
-        // Check Notes
-        b32 custom_note_color_used = false;
-        if (token->kind == TokenBaseKind_Identifier &&
-            !field)
-        {
-            String_Const_u8 token_as_string = push_token_lexeme(app, scratch, buffer, token);
-            Data str_data = *(Data *)&token_as_string;
-            
-            for (Buffer_ID buf = get_buffer_next(app, 0, Access_Always);
-                 buf != 0;
-                 buf = get_buffer_next(app, buf, Access_Always))
-            {
-                if (*buffer_get_language(app, buf) != *buffer_get_language(app, buffer)) continue;
-                
-                Code_Index_Table *code_index = get_code_index_table(&code_index_tables, buf);
-                if (code_index == 0)
-                    continue;
-                
-                Table_Lookup lookup = table_lookup(&code_index->notes, str_data);
-                Code_Index_Note_List *list;
-                b32 res = table_read(&code_index->notes, lookup, (u64 *)&list);
-                if (!res || !list || !list->first) continue;
-                
-                for (Code_Index_Note *note = list->first; note; note = note->next)
-                {
-                    switch (note->note_kind)
-                    {
-                        case CodeIndexNote_Type:
-                        {
-                            custom_note_color_used = true;
-                            Range_i64 range = {};
-                            range.start = token->pos;
-                            range.end = token->pos + token->size;
-                            paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_type_name));
-                        } break;
-                        case CodeIndexNote_Macro:
-                        case CodeIndexNote_Function:
-                        {
-                            Token *peek;
-                            do
-                            {
-                                token_it_inc_all(&it);
-                                peek = token_it_read(&it);
-                            } while (peek->kind == TokenBaseKind_Whitespace);
-                            it = token_iterator(it.user_id, it.tokens, it.count, token);
-                            
-                            b32 invalid = false;
-                            if (string_match((*language)->name, SCu8("CPP"), StringMatch_Exact))
-                            {
-                                invalid = peek->sub_kind != TokenCppKind_ParenOp;
-                            }
-                            else if (string_match((*language)->name, SCu8("Odin"), StringMatch_Exact))
-                            {
-                                invalid = peek->sub_kind != TokenOdinKind_ParenOp &&
-                                    peek->sub_kind != TokenOdinKind_ColonColon;
-                            }
-                            
-                            if (invalid) continue;
-                            custom_note_color_used = true;
-                            
-                            Range_i64 range = {};
-                            range.start = token->pos;
-                            range.end = token->pos + token->size;
-                            paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_function_name));
-                        } break;
-                        
-                        default: continue;
-                    }
-                    break;
-                }
-            }
-        }
-        // END: Check Notes
-        
-        if (!custom_note_color_used)
-        {
-            FColor color = (*language)->get_token_color(*token);
-            paint_text_color_fcolor(app, text_layout_id, Ii64_size(token->pos, token->size), color);
-        }
-        
-        if (!token_it_inc_all(&it))
-            break;
-    }
-}
-
 static void tc_paint_comment_keywords(Application_Links *app, Buffer_ID buffer, Text_Layout_ID text_layout_id, Token_Array *token_array)
 {
     Comment_Highlight_Pair pairs[] = {
@@ -222,10 +101,12 @@ static void tc_render_buffer(Application_Links *app, View_ID view_id, Face_ID fa
     f32 cursor_roundness = (metrics.normal_advance*0.5f)*0.9f;
     f32 mark_thickness = 2.f;
     
+    Language **language = buffer_get_language(app, buffer);
+    if (*language) print_language(app);
     Token_Array token_array = get_token_array_from_buffer(app, buffer);
     if (token_array.tokens != 0)
     {
-        tc_paint_tokens(app, buffer, text_layout_id, &token_array);
+        language_paint_tokens(app, buffer, text_layout_id, &token_array);
         if (global_config.use_comment_keyword)
             tc_paint_comment_keywords(app, buffer, text_layout_id, &token_array);
     }
