@@ -1006,7 +1006,6 @@ static void language_render_buffer(Application_Links *app, View_ID view_id, Face
     f32 mark_thickness = 2.f;
     
     Language **language = buffer_get_language(app, buffer);
-    if (*language) print_language(app);
     Token_Array token_array = get_token_array_from_buffer(app, buffer);
     if (token_array.tokens != 0)
     {
