@@ -1,5 +1,3 @@
-#include <string>
-
 function ARGB_Color vec4_to_argb(Vec4_f32 color)
 {
     u8 r = color.r*255;
