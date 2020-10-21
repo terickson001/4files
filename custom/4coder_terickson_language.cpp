@@ -982,7 +982,7 @@ BUFFER_EDIT_RANGE_SIG(language_buffer_edit_range){
     }
     
     if (do_full_relex){
-        *lex_task_ptr = async_task_no_dep(&global_async_system, do_full_lex_async,
+        *lex_task_ptr = async_task_no_dep(&global_async_system, language_do_full_lex_async,
                                           make_data_struct(&buffer_id));
     }
     
