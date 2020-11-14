@@ -1,5 +1,8 @@
 #include "generated/lexer_odin.h"
+#pragma warning(push)
+#pragma warning(disable: 4065)
 #include "generated/lexer_odin.cpp"
+#pragma warning(pop)
 #include "4coder_terickson_language.h"
 
 // Common

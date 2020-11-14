@@ -4,6 +4,7 @@ custom_4coder.so
 4ed.exe
 4ed_app.dll
 custom_4coder.dll
+*.pdb
 
 LICENSE.txt
 README.txt
