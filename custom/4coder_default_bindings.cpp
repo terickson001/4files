@@ -15,7 +15,7 @@
 
 #include "generated/managed_id_metadata.cpp"
 
-global Arena tc_global_arena = {};
+
 
 #include "4coder_terickson_helper.cpp"
 
@@ -43,6 +43,7 @@ global Arena tc_global_arena = {};
 #include "4coder_terickson_commands.cpp"
 #include "4coder_terickson_map.cpp"
 
+global Arena tc_global_arena = {};
 
 void
 custom_layer_init(Application_Links *app)
