@@ -27,7 +27,7 @@ global Arena language_arena = {};
 #include "languages/odin/odin.cpp"
 #include "languages/glsl/glsl.cpp"
 
-// Inside your `custom_layer_init`, initialize the main extension, 
+// Inside your `custom_layer_init`, initialize the main extension,
 // and all the languages and language-dependent extensions you want.
 // And finally, call `set_language_hooks` immediately after `set_all_default_hooks`
 
@@ -335,7 +335,7 @@ function b32 language_generic_parse_full_input_breaks(Code_Index_File *index, Ge
             }
             else
             {
-                Code_Index_Note_List *list = push_array_zero(code_index->arena, Code_Index_Note_List, 1);
+                list = push_array_zero(code_index->arena, Code_Index_Note_List, 1);
                 Code_Index_Note *note = push_array_write(code_index->arena, Code_Index_Note, 1, index->note_array.ptrs[i]);
                 sll_queue_push(list->first, list->last, note);
                 table_insert(&code_index->notes, str_data, HandleAsU64(list));
@@ -786,14 +786,15 @@ function b32 language_begin_buffer__determine_language(Application_Links *app, B
         String_Const_u8_Array extensions = global_config.code_exts;
         String_Const_u8 ext = string_file_extension(file_name);
         *language = language_from_extension(ext);
-        print_message(app, push_stringf(scratch, "EXT: %.*s\n", string_expand(ext)));
         
-        for (i32 i = 0; !*language && i < extensions.count; ++i) {
-            if (string_match(ext, extensions.strings[i])) {
-                treat_as_code = true;
-            }
-            break;
-        }
+        /* 
+                for (i32 i = 0; !*language && i < extensions.count; ++i) {
+                    if (string_match(ext, extensions.strings[i])) {
+                        treat_as_code = true;
+                    }
+                    break;
+                }
+         */
     }
     if (*language) treat_as_code = true;
     return treat_as_code;
@@ -1005,7 +1006,7 @@ static void language_render_buffer(Application_Links *app, View_ID view_id, Face
     f32 cursor_roundness = (metrics.normal_advance*0.5f)*0.9f;
     f32 mark_thickness = 2.f;
     
-    Language **language = buffer_get_language(app, buffer);
+    // Language **language = buffer_get_language(app, buffer);
     Token_Array token_array = get_token_array_from_buffer(app, buffer);
     if (token_array.tokens != 0)
     {
@@ -1229,7 +1230,6 @@ CUSTOM_COMMAND_SIG(set_language)
 CUSTOM_DOC("Set the language for the current buffer.")
 {
     View_ID view = get_active_view(app, Access_Always);
-    i64 cursor = view_get_cursor_pos(app, view);
     Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
     
     u8 language_buff[1024];
@@ -1254,7 +1254,6 @@ CUSTOM_COMMAND_SIG(print_language)
 CUSTOM_DOC("Print the language for the current buffer.")
 {
     View_ID view = get_active_view(app, Access_Always);
-    i64 cursor = view_get_cursor_pos(app, view);
     Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
     
     Scratch_Block scratch(app);
@@ -1405,7 +1404,7 @@ function void indent_nest_list(Application_Links *app, Buffer_ID buffer, Code_In
                 
                 i64 column = Max(0, get_column_from_pos(app, buffer, current_nest->open.max)-1);// + indentations[start-1];
                 block_fill_u64(indentations+start, sizeof(*indentations)*count, (u64)(column));
-                indent_nest_list(app, buffer, current_nest->nest_list, indentations, column, tab_width);
+                indent_nest_list(app, buffer, current_nest->nest_list, indentations, (i32)column, tab_width);
             } break;
             
             case CodeIndexNest_Statement: {
@@ -1426,7 +1425,7 @@ function i64 *get_indentation_array_from_index(Application_Links *app, Arena *ar
 {
     i64 count = lines.max - lines.min + 1;
     i64 *indentations = push_array(arena, i64, count);
-    i64 *shifted_indentations = indentations - lines.first;
+    //     i64 *shifted_indentations = indentations - lines.first;
     block_fill_u64(indentations, sizeof(*indentations)*count, (u64)(0));
     
     Code_Index_File *file = code_index_get_file(buffer);

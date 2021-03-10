@@ -48,7 +48,7 @@ FColor cpp_get_token_color(Token token)
                 {
                     color = defcolor_bool_constant;
                 } break;
-                
+
                 case TokenCppKind_PPIncludeFile:
                 {
                     color = defcolor_include;
@@ -64,11 +64,11 @@ Parsed_Jump cpp_parse_jump_location(String_Const_u8 line)
 {
     Parsed_Jump jump = {};
     jump.sub_jump_indented = (string_get_character(line, 0) == ' ');
-    
+
     String_Const_u8 reduced_line = string_skip_chop_whitespace(line);
     u64 whitespace_length = (u64)(reduced_line.str - line.str);
     line = reduced_line;
-    
+
     u64 left_paren_pos = string_find_first(line, '(');
     u64 right_paren_pos = left_paren_pos + string_find_first(string_skip(line, left_paren_pos), ')');
     for (;!jump.is_ms_style && right_paren_pos < line.size;){
@@ -79,26 +79,26 @@ Parsed_Jump cpp_parse_jump_location(String_Const_u8 line)
                 if (check_is_note(line, jump.colon_position)){
                     jump.sub_jump_note = true;
                 }
-                
+
                 String_Const_u8 location_str = string_prefix(line, jump.colon_position);
                 location_str = string_skip_chop_whitespace(location_str);
-                
+
                 i32 close_pos = (i32)right_paren_pos;
                 i32 open_pos = (i32)left_paren_pos;
-                
+
                 if (0 < open_pos && open_pos < location_str.size){
                     String_Const_u8 file = SCu8(location_str.str, open_pos);
                     file = string_skip_chop_whitespace(file);
-                    
+
                     if (file.size > 0){
                         String_Const_u8 line_number = string_skip(string_prefix(location_str, close_pos), open_pos + 1);
                         line_number = string_skip_chop_whitespace(line_number);
-                        
+
                         if (line_number.size > 0){
                             u64 comma_pos = string_find_first(line_number, ',');
                             if (comma_pos < line_number.size){
                                 String_Const_u8 column_number = string_skip(line_number, comma_pos + 1);
-                                
+
                                 line_number = string_prefix(line_number, comma_pos);
                                 jump.location.line = (i32)string_to_integer(line_number, 10);
                                 jump.location.column = (i32)string_to_integer(column_number, 10);
@@ -120,28 +120,28 @@ Parsed_Jump cpp_parse_jump_location(String_Const_u8 line)
             right_paren_pos = string_find_first(string_skip(line, left_paren_pos), ')') + left_paren_pos;
         }
     }
-    
+
     if (!jump.is_ms_style){
         i32 start = (i32)try_skip_rust_arrow(line);
         if (start != 0){
             jump.has_rust_arrow = true;
         }
-        
+
         u64 colon_pos1 = string_find_first(string_skip(line, start), ':') + start;
         if (line.size > colon_pos1 + 1){
             if (character_is_slash(string_get_character(line, colon_pos1 + 1))){
                 colon_pos1 = string_find_first(string_skip(line, colon_pos1 + 1), ':') + colon_pos1 + 1;
             }
         }
-        
+
         u64 colon_pos2 = string_find_first(string_skip(line, colon_pos1 + 1), ':') + colon_pos1 + 1;
         u64 colon_pos3 = string_find_first(string_skip(line, colon_pos2 + 1), ':') + colon_pos2 + 1;
-        
+
         if (colon_pos3 < line.size){
             if (check_is_note(line, colon_pos3)){
                 jump.sub_jump_note = true;
             }
-            
+
             String_Const_u8 file_name = string_skip(string_prefix(line, colon_pos1), start);
             String_Const_u8 line_number = string_skip(string_prefix(line, colon_pos2), colon_pos1 + 1);
             String_Const_u8 column_number = string_skip(string_prefix(line, colon_pos3), colon_pos2 + 1);
@@ -160,11 +160,11 @@ Parsed_Jump cpp_parse_jump_location(String_Const_u8 line)
                 if (check_is_note(line, colon_pos2)){
                     jump.sub_jump_note = true;
                 }
-                
+
                 String_Const_u8 file_name = string_prefix(line, colon_pos1);
                 String_Const_u8 line_number = string_skip(string_prefix(line, colon_pos2), colon_pos1 + 1);
                 String_Const_u8 message = string_skip(line, colon_pos2 + 2);
-                
+
                 if (string_is_integer(line_number, 10)){
                     if (file_name.size > 0 && line_number.size > 0){
                         jump.location.file = file_name;
@@ -178,7 +178,7 @@ Parsed_Jump cpp_parse_jump_location(String_Const_u8 line)
             }
         }
     }
-    
+
     if (!jump.success){
         block_zero_struct(&jump);
     }
@@ -201,27 +201,27 @@ function Function_Index *cpp_parse_function__findexer(Application_Links *app, Co
     Code_Index_Nest *nest = code_index_get_nest(note->file, note->pos.max+1);
     if (!nest || nest->kind != CodeIndexNest_Paren)
         return 0;
-    
+
     Buffer_ID buffer = note->file->buffer;
     Range_i64 param_range = Ii64(nest->open.max, nest->close.min);
     Token_Array tokens = get_token_array_from_buffer(app, buffer);
-    
+
     Function_Index *index = push_array_zero(arena, Function_Index, 1);
     index->note = note;
     index->name = note->text;
     index->parameters = {0};
-    
+
     i64 idx = token_index_from_pos(&tokens, param_range.min);
     String_Const_u8 param_string = push_buffer_range(app, arena, buffer, param_range);
     Function_Parameter *param = 0;
-    
+
     while (tokens.tokens[idx].pos < param_range.max)
     {
         String_Const_u8 prefix = {};
         String_Const_u8 type = {};
         String_Const_u8 postfix = {};
         String_Const_u8 name = {};
-        
+
         //// TYPE PREFIX
         type_prefix:
         switch (tokens.tokens[idx].sub_kind)
@@ -233,16 +233,16 @@ function Function_Index *cpp_parse_function__findexer(Application_Links *app, Co
                 prefix.str = &param_string.str[tokens.tokens[idx].pos - param_range.min];
             idx++;
             goto type_prefix;
-            
+
             default:
             if (prefix.str != 0)
                 prefix.size = &param_string.str[Ii64(&tokens.tokens[idx-1]).max-param_range.min] - prefix.str;
             break;
         }
-        
+
         while (tokens.tokens[idx].kind == TokenBaseKind_Whitespace ||
                tokens.tokens[idx].kind == TokenBaseKind_Comment) idx++;
-        
+
         //// TYPE NAME
         b32 allow_ident = true;
         type_name:
@@ -251,7 +251,7 @@ function Function_Index *cpp_parse_function__findexer(Application_Links *app, Co
             case TokenCppKind_Whitespace:
             idx++;
             goto type_name;
-            
+
             case TokenCppKind_Identifier:
             if (!allow_ident)
             {
@@ -264,7 +264,7 @@ function Function_Index *cpp_parse_function__findexer(Application_Links *app, Co
             type.size = &param_string.str[Ii64(&tokens.tokens[idx]).max-param_range.min] - type.str;
             idx++;
             break;
-            
+
             case TokenCppKind_Struct:
             case TokenCppKind_Enum:
             case TokenCppKind_Union:
@@ -272,7 +272,7 @@ function Function_Index *cpp_parse_function__findexer(Application_Links *app, Co
                 type.str = &param_string.str[tokens.tokens[idx].pos - param_range.min];
             idx++;
             goto type_name;
-            
+
             default:
             if (cpp_is_builtin_type(&tokens.tokens[idx]))
             {
@@ -292,7 +292,7 @@ function Function_Index *cpp_parse_function__findexer(Application_Links *app, Co
         type = string_skip_chop_whitespace(type);
         while (tokens.tokens[idx].kind == TokenBaseKind_Whitespace ||
                tokens.tokens[idx].kind == TokenBaseKind_Comment) idx++;
-        
+
         //// TYPE POSTFIX
         type_postfix:
         switch (tokens.tokens[idx].sub_kind)
@@ -302,13 +302,13 @@ function Function_Index *cpp_parse_function__findexer(Application_Links *app, Co
                 postfix.str = &param_string.str[tokens.tokens[idx].pos - param_range.min];
             idx++;
             goto type_postfix;
-            
+
             default:
             if (postfix.str != 0)
                 postfix.size = &param_string.str[Ii64(&tokens.tokens[idx-1]).max-param_range.min] - postfix.str;
             break;
         }
-        
+
         while (tokens.tokens[idx].kind == TokenBaseKind_Whitespace ||
                tokens.tokens[idx].kind == TokenBaseKind_Comment) idx++;
         //// PARAM NAME
@@ -319,11 +319,11 @@ function Function_Index *cpp_parse_function__findexer(Application_Links *app, Co
             name.size = tokens.tokens[idx].size;
             idx++;
             break;
-            
+
             default:
             break;
         }
-        
+
         //// SKIP TO COMMA or PAREN
         skip_rest:
         switch (tokens.tokens[idx].sub_kind)
@@ -332,12 +332,12 @@ function Function_Index *cpp_parse_function__findexer(Application_Links *app, Co
             case TokenCppKind_ParenCl:
             idx++;
             break;
-            
+
             default:
             idx++;
             goto skip_rest;
         }
-        
+
         param = push_array_zero(arena, Function_Parameter, 1);
         param->prefix = push_string_copy(arena, prefix);
         param->name = push_string_copy(arena, name);
@@ -345,7 +345,7 @@ function Function_Index *cpp_parse_function__findexer(Application_Links *app, Co
         param->type = push_string_copy(arena, type);
         sll_queue_push(index->parameters.first, index->parameters.last, param);
     }
-    
+
     return index;
 }
 
@@ -365,7 +365,7 @@ function List_String_Const_u8 cpp_parameter_strings(Function_Index *index, Arena
                           string_expand(param->name)
                           );
     }
-    
+
     return param_strings;
 }
 
@@ -374,7 +374,7 @@ static Language_Function_Indexer cpp_function_indexer =
     &language_def_cpp,
     cpp_parse_function__findexer,
     cpp_parameter_strings,
-    .delims = {
+    /* .delims = */ {
         TokenCppKind_ParenOp, SCu8("("),
         TokenCppKind_ParenCl, SCu8(")"),
         TokenCppKind_Comma, SCu8(",")
