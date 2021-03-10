@@ -81,16 +81,16 @@ struct Language
 #define LEX_INIT_DEF(NAME, LEX_STATE) \
 function void NAME##_lex_init(Arena *arena, Generic_Lex_State *state, String_Const_u8 input) \
 { \
-if (state->data == 0) \
+if (state->str == 0) \
 *state = push_data(arena, sizeof(LEX_STATE)); \
 Assert(state->size == sizeof(LEX_STATE)); \
-lex_full_input_##NAME##_init((LEX_STATE *)state->data, input); \
+lex_full_input_##NAME##_init((LEX_STATE *)state->str, input); \
 }
 #define LEX_BREAKS_DEF(NAME, LEX_STATE) \
 function b32 NAME##_lex_breaks(Arena *arena, Token_List *list, Generic_Lex_State *state, u64 max) \
 { \
 Assert(state->size == sizeof(LEX_STATE)); \
-return lex_full_input_##NAME##_breaks(arena, list, (LEX_STATE *)state->data, max); \
+return lex_full_input_##NAME##_breaks(arena, list, (LEX_STATE *)state->str, max); \
 }
 
 #define LANG_DEF(PRETTY, NAME, EXT) \

@@ -12,10 +12,23 @@ changes.txt
 fonts
 project.4coder
 one_time
+mac-bindings.4coder
+audio_test/
 
 themes/*
 !themes/theme-naysayer.4coder
 
+custom/4coder_audio.cpp
+custom/4coder_audio.h
+custom/4coder_dynamic_bindings.cpp
+custom/4coder_prj_v1.cpp
+custom/4coder_prj_v1.h
+custom/4coder_search_list.cpp
+custom/4coder_search_list.h
+custom/4coder_variables.cpp
+custom/4coder_variables.h
+custom/4coder_default_bindings.cpp
+custom/4coder_default_framework.cpp
 custom/4coder_app_links_allocator.cpp
 custom/4coder_async_tasks.cpp
 custom/4coder_async_tasks.h

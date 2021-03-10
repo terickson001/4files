@@ -447,7 +447,7 @@ language_do_full_lex_async__inner(Async_Context *actx, Buffer_ID buffer_id){
 function void
 language_do_full_lex_async(Async_Context *actx, Data data){
     if (data.size == sizeof(Buffer_ID)){
-        Buffer_ID *buffer = (Buffer_ID*)data.data;
+        Buffer_ID *buffer = (Buffer_ID*)data.str;
         language_do_full_lex_async__inner(actx, *buffer);
     }
 }
@@ -783,18 +783,8 @@ function b32 language_begin_buffer__determine_language(Application_Links *app, B
     
     b32 treat_as_code = false;
     if (!*language && file_name.size > 0){
-        String_Const_u8_Array extensions = global_config.code_exts;
         String_Const_u8 ext = string_file_extension(file_name);
         *language = language_from_extension(ext);
-        
-        /* 
-                for (i32 i = 0; !*language && i < extensions.count; ++i) {
-                    if (string_match(ext, extensions.strings[i])) {
-                        treat_as_code = true;
-                    }
-                    break;
-                }
-         */
     }
     if (*language) treat_as_code = true;
     return treat_as_code;
@@ -814,14 +804,18 @@ function void language_init_buffer(Application_Links *app, Buffer_ID buffer_id)
     Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);
     
     b32 treat_as_code = false;
-    if (global_config.automatically_load_project && !current_project.loaded){
+    b32 auto_load = def_get_config_b32(vars_save_string_lit("automatically_load_project"));
+    Variable_Handle prj_var = vars_read_key(vars_get_root(), vars_save_string_lit("prj_config"));
+    if (auto_load && vars_is_nil(prj_var)){
         load_project(app);
     }
     
     treat_as_code = language_begin_buffer__determine_language(app, buffer_id);
     
-    Command_Map_ID map_id = (treat_as_code)?(mapid_code):(mapid_file);
-    Command_Map_ID *map_id_ptr = scope_attachment(app, scope, buffer_map_id, Command_Map_ID);
+    String_ID file_map_id = vars_save_string_lit("keys_file");
+    String_ID code_map_id = vars_save_string_lit("keys_code");
+    String_ID map_id = (treat_as_code)?(code_map_id):(file_map_id);
+    String_ID *map_id_ptr = scope_attachment(app, scope, buffer_map_id, String_ID);
     *map_id_ptr = map_id;
     
     Line_Ending_Kind setting = guess_line_ending_kind_from_buffer(app, buffer_id);
@@ -832,7 +826,7 @@ function void language_init_buffer(Application_Links *app, Buffer_ID buffer_id)
     b32 wrap_lines = true;
     b32 use_lexer = false;
     if (treat_as_code){
-        wrap_lines = global_config.enable_code_wrapping;
+        wrap_lines = def_get_config_b32(vars_save_string_lit("enable_code_wrapping"));
         use_lexer = true;
     }
     
@@ -1011,17 +1005,15 @@ static void language_render_buffer(Application_Links *app, View_ID view_id, Face
     if (token_array.tokens != 0)
     {
         language_paint_tokens(app, buffer, text_layout_id, &token_array);
-        if (global_config.use_comment_keyword)
-        {
-            // NOTE(allen): Scan for TODOs and NOTEs
-            if (global_config.use_comment_keyword){
-                Comment_Highlight_Pair pairs[] = {
-                    {string_u8_litexpr("NOTE"), finalize_color(defcolor_comment_pop, 0)},
-                    {string_u8_litexpr("TODO"), finalize_color(defcolor_comment_pop, 1)},
-                };
-                draw_comment_highlights(app, buffer, text_layout_id,
-                                        &token_array, pairs, ArrayCount(pairs));
-            }
+        // NOTE(allen): Scan for TODOs and NOTEs
+        b32 use_comment_keyword = def_get_config_b32(vars_save_string_lit("use_comment_keyword"));
+        if (use_comment_keyword){
+            Comment_Highlight_Pair pairs[] = {
+                {string_u8_litexpr("NOTE"), finalize_color(defcolor_comment_pop, 0)},
+                {string_u8_litexpr("TODO"), finalize_color(defcolor_comment_pop, 1)},
+            };
+            draw_comment_highlights(app, buffer, text_layout_id,
+                                    &token_array, pairs, ArrayCount(pairs));
         }
     }
     else
@@ -1034,22 +1026,25 @@ static void language_render_buffer(Application_Links *app, View_ID view_id, Face
     view_correct_mark(app, view_id);
     
     // NOTE(allen): Scope highlight
-    if (global_config.use_scope_highlight){
+    b32 use_scope_highlight = def_get_config_b32(vars_save_string_lit("use_scope_highlight"));
+    if (use_scope_highlight){
         Color_Array colors = finalize_color_array(defcolor_back_cycle);
         draw_scope_highlight(app, buffer, text_layout_id, cursor_pos, colors.vals, colors.count);
     }
     
-    if (global_config.use_error_highlight || global_config.use_jump_highlight){
+    b32 use_error_highlight = def_get_config_b32(vars_save_string_lit("use_error_highlight"));
+    b32 use_jump_highlight = def_get_config_b32(vars_save_string_lit("use_jump_highlight"));
+    if (use_error_highlight || use_jump_highlight){
         // NOTE(allen): Error highlight
         String_Const_u8 name = string_u8_litexpr("*compilation*");
         Buffer_ID compilation_buffer = get_buffer_by_name(app, name, Access_Always);
-        if (global_config.use_error_highlight){
+        if (use_error_highlight){
             draw_jump_highlights(app, buffer, text_layout_id, compilation_buffer,
                                  fcolor_id(defcolor_highlight_junk));
         }
         
         // NOTE(allen): Search highlight
-        if (global_config.use_jump_highlight){
+        if (use_jump_highlight){
             Buffer_ID jump_buffer = get_locked_jump_buffer(app);
             if (jump_buffer != compilation_buffer){
                 draw_jump_highlights(app, buffer, text_layout_id, jump_buffer,
@@ -1059,13 +1054,15 @@ static void language_render_buffer(Application_Links *app, View_ID view_id, Face
     }
     
     // NOTE(allen): Color parens
-    if (global_config.use_paren_helper){
+    b32 use_paren_helper = def_get_config_b32(vars_save_string_lit("use_paren_helper"));
+    if (use_paren_helper){
         Color_Array colors = finalize_color_array(defcolor_text_cycle);
         draw_paren_highlight(app, buffer, text_layout_id, cursor_pos, colors.vals, colors.count);
     }
     
     // NOTE(allen): Line highlight
-    if (global_config.highlight_line_at_cursor && is_active_view){
+    b32 highlight_line_at_cursor = def_get_config_b32(vars_save_string_lit("highlight_line_at_cursor"));
+    if (highlight_line_at_cursor && is_active_view){
         i64 line_number = get_line_number_from_pos(app, buffer, cursor_pos);
         draw_line_highlight(app, text_layout_id, line_number,
                             fcolor_id(defcolor_highlight_cursor_line));
@@ -1151,7 +1148,8 @@ function void language_render_caller(Application_Links *app, Frame_Info frame_in
     
     // NOTE(allen): layout line numbers
     Rect_f32 line_number_rect = {};
-    if (global_config.show_line_number_margins){
+    b32 show_line_number_margins = def_get_config_b32(vars_save_string_lit("show_line_number_margins"));
+    if (show_line_number_margins){
         Rect_f32_Pair pair = layout_line_number_margin(app, buffer, region, digit_advance);
         line_number_rect = pair.min;
         region = pair.max;
@@ -1162,7 +1160,7 @@ function void language_render_caller(Application_Links *app, Frame_Info frame_in
     Text_Layout_ID text_layout_id = text_layout_create(app, buffer, region, buffer_point);
     
     // NOTE(allen): draw line numbers
-    if (global_config.show_line_number_margins){
+    if (show_line_number_margins){
         draw_line_number_margin(app, view_id, buffer, face_id, text_layout_id, line_number_rect);
     }
     
@@ -1458,7 +1456,7 @@ function Extension_Support *language_get_extension(Language *lang, String_Const_
     Table_Lookup lookup = table_lookup(&lang->extension_support, str_data);
     b32 res = table_read(&lang->extension_support, lookup, &ext_data);
     if (res)
-        return (Extension_Support*)ext_data.data;
+        return (Extension_Support*)ext_data.str;
     return 0;
 }
 
