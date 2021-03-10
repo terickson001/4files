@@ -1,5 +1,5 @@
 // Command Mapping
-// ""                - Leave the bindings unaltered.
+// ""                - Leave the bindings unaltered - use this when writing your own customization!
 // "choose"          - Ask 4coder to choose based on platform.
 // "default"         - Use the default keybindings 4coder has always had.
 // "mac-default"     - Use keybindings similar to those found in other Mac applications.
@@ -9,17 +9,35 @@ mapping = "";
 // "4coder"       - The default 4coder mode that has been around since the beginning of time (2015)
 // "notepad-like" - Single "thin" cursor and highlight ranges like in notepad, sublime, notepad++, etc
 mode = "4coder";
+bind_by_physical_key = false;
 
 // UI
-use_scroll_bars = false;
 use_file_bars = true;
+hide_file_bar_in_ui = true;
 use_error_highlight = true;
 use_jump_highlight = true;
 use_scope_highlight = true;
 use_paren_helper = true;
 use_comment_keywords = true;
-lister_whole_word_backspace_when_modified = false;
-show_line_number_margins = false; // Disable due to performance bug
+lister_whole_word_backspace_when_modified = true;
+show_line_number_margins = false;
+enable_output_wrapping = false;
+
+enable_undo_fade_out = false;
+
+// cursor_roundess is a value [0,50] setting the radius of
+// the cursor and mark's roundness as a percentage of their width
+// (At 50 the left and right corners will be so round they form a semi-circle,
+//  hence 50 is the max)
+cursor_roundness = 45;
+
+// mark_thickness is a pixel count value setting the
+// thickness of the mark wire box in original mode
+mark_thickness = 2;
+
+// lister_roundess is a value [0,50] setting the radius of
+// the lister items' roundness as a percentage of their height
+lister_roundness = 20;
 
 // Code Wrapping
 treat_as_code = ".cc.cs.java.rs.m.mm.cpp.h.c.odin.4coder.S.asm.glsl.vs.gs.ts.fs";
@@ -40,15 +58,20 @@ automatically_load_project = true;
 // Indentation
 indent_with_tabs = false;
 indent_width = 4;
+default_tab_width = 4;
 
 // Theme
 default_theme_name = "theme-naysayer";
-highlight_line_at_cursor = true;
 
 // Font
 default_font_name = "Inconsolata-Regular-Nerd.otf";
 default_font_size = 16;
 default_font_hinting = false;
+
+// aa modes:
+//  8bit - mono-chrome 0-255 opacity channel per pixel
+//  1bit - mono-chrome 0/1 opacity channel per pixel
+default_font_aa_mode = "8bit";
 
 // User
 user_name = "tyler";

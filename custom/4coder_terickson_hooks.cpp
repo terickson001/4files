@@ -11,7 +11,8 @@ CUSTOM_DOC("Custom startup hook")
         if (file_names.count > 0)
             buffer = buffer_identifier(file_names.vals[0]);
         default_4coder_one_panel(app, buffer);
-        if (global_config.automatically_load_project)
+        b32 auto_load = def_get_config_b32(vars_save_string_lit("automatically_load_project"));
+        if (auto_load)
             load_project(app);
         // amberify(app);
     }
@@ -64,7 +65,8 @@ function void tc_render_caller(Application_Links *app, Frame_Info frame_info, Vi
     
     // NOTE(allen): layout line numbers
     Rect_f32 line_number_rect = {};
-    if (global_config.show_line_number_margins){
+    b32 show_line_number_margins = def_get_config_b32(vars_save_string_lit("show_line_number_margins"));
+    if (show_line_number_margins){
         Rect_f32_Pair pair = layout_line_number_margin(app, buffer, region, digit_advance);
         line_number_rect = pair.min;
         region = pair.max;
@@ -75,7 +77,7 @@ function void tc_render_caller(Application_Links *app, Frame_Info frame_info, Vi
     Text_Layout_ID text_layout_id = text_layout_create(app, buffer, region, buffer_point);
     
     // NOTE(allen): draw line numbers
-    if (global_config.show_line_number_margins){
+    if (show_line_number_margins){
         draw_line_number_margin(app, view_id, buffer, face_id, text_layout_id, line_number_rect);
     }
     

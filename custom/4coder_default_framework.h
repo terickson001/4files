@@ -37,7 +37,7 @@ struct Name_Line_Column_Location{
     i32 column;
 };
 
-struct Parsed_Jump {
+struct Parsed_Jump{
     b32 success;
     Name_Line_Column_Location location;
     i32 colon_position;
@@ -132,6 +132,20 @@ struct Fade_Range_List{
 };
 
 #endif
+
+////////////////////////////////
+
+struct Implicit_Map_Result{
+    String_ID map;
+    Custom_Command_Function *command;
+};
+
+typedef Implicit_Map_Result Implicit_Map_Function(Application_Links *app,
+                                                  String_ID buffer_language,
+                                                  String_ID global_mode,
+                                                  Input_Event *event);
+
+global Implicit_Map_Function *implicit_map_function = 0;
 
 // BOTTOM
 

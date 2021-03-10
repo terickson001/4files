@@ -10,11 +10,13 @@ tc_generate_all_buffers_list__output_buffer(Application_Links *app, Lister *list
     }
     
     Scratch_Block scratch(app, lister->arena);
+    Variable_Handle prj_var = vars_read_key(vars_get_root(), vars_save_string_lit("prj_config"));
     String_Const_u8 buffer_name = {};
-    if (current_project.loaded)
+    if (!vars_is_nil(prj_var))
     {
+        String8 prj_dir = prj_path_from_project(scratch, prj_var);
         buffer_name = push_buffer_file_name(app, scratch, buffer);
-        buffer_name = string_replace(scratch, buffer_name, current_project.dir, SCu8("./"), StringFill_NoTerminate);
+        buffer_name = string_replace(scratch, buffer_name, prj_dir, SCu8("./"), StringFill_NoTerminate);
     }
     if (buffer_name.size == 0)
         buffer_name = push_buffer_unique_name(app, scratch, buffer);
