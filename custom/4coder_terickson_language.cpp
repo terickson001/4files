@@ -3,6 +3,11 @@
 global Arena language_arena = {};
 /****** SETUP GUIDE *******/
 #if 0
+// FILES NEEDED:
+//   4coder_language_ids.cpp
+//   4coder_terickson_language.h
+//   4coder_terickson_language.cpp
+
 // In your bindings file (or `4coder_default_bindings.cpp`) you
 // have to #include "4coder_language_ids.cpp" _immediately_ following
 // the #include "4coder_default_include.cpp"
