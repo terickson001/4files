@@ -8,7 +8,6 @@
 #define FCODER_DEFAULT_BINDINGS_CPP
 
 #include "4coder_default_include.cpp"
-typedef String_Const_u8 Data;
 
 // NOTE(allen): Users can declare their own managed IDs here.
 #include "4coder_language_ids.cpp"

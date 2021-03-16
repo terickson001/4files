@@ -19,7 +19,6 @@ global Arena language_arena = {};
 
 // Extensions
 #include "ext/4coder_terickson_function_index.cpp"
-#include "ext/4coder_terickson_std_include.cpp"
 #include "ext/4coder_terickson_todo.cpp"
 
 // Languages
@@ -39,7 +38,6 @@ void custom_layer_init(Application_Links *app)
     init_ext_language(app);
     
     // Language Dependent Extensions
-    init_ext_std_include();
     init_ext_todo();
     
     // Language Definitions
@@ -49,8 +47,9 @@ void custom_layer_init(Application_Links *app)
     init_language_gas();
     init_language_nasm();
     
-    // Some Processing on Language Definitions
+    // Finalize language definitions
     finalize_languages(app);
+    
     /*...*/
     set_all_default_hooks(app);
     set_language_hooks(app);
@@ -64,17 +63,19 @@ void custom_layer_init(Application_Links *app)
 // `build_lang` script that comes bundled with this extension.
 // i.e.:
 //     $ ./build_lang.sh glsl
+//   or
+//     $ ./build_lang.bat glsl
 
 // For keybindings, I recommend overriding the default commenting binds
 // as well as the default `if_read_only_goto_position*` binds, which handle
 // jumping to errors
 
 {
-    Bind(language_comment_line_toggle,               KeyCode_Semicolon, KeyCode_Control);
-    Bind(language_comment_range,     KeyCode_R, KeyCode_Alt);
+    {"language_comment_line_toggle",  "Semicolon", "Control"},
+    {"language_comment_range",        "R", "Alt"},
     
-    Bind(language_if_read_only_goto_position,  KeyCode_Return);
-    Bind(language_if_read_only_goto_position_same_panel, KeyCode_Return, KeyCode_Shift);
+    {"language_if_read_only_goto_position",  "Return"};
+    {"language_if_read_only_goto_position_same_panel", "Return", "Shift"};
 }
 
 #endif
@@ -280,13 +281,15 @@ function b32 language_generic_parse_full_input_breaks(Code_Index_File *index, Ge
     
     Managed_Scope scope = buffer_get_managed_scope(state->app, index->buffer);
     Language **language = scope_attachment(state->app, scope, buffer_language, Language*);
+    Thread_Context *tctx = get_thread_context(state->app);
+    
     if (!*language) return true;
     
     Code_Index_Table *code_index = get_code_index_table(&code_index_tables, index->buffer);
     if (code_index)
-        release_arena(state->app, code_index->arena);
+        tctx_release(tctx, code_index->arena);
     {
-        Arena *index_arena = reserve_arena(state->app);
+        Arena *index_arena = tctx_reserve(tctx);
         code_index = push_array_zero(index_arena, Code_Index_Table, 1);
         code_index->buffer = index->buffer;
         code_index->arena = index_arena;

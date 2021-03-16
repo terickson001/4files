@@ -1,6 +1,8 @@
 #ifndef TERICKSON_LANGUAGE_H
 #define TERICKSON_LANGUAGE_H
 
+typedef String_Const_u8 Data;
+
 typedef struct Extension_Support
 {
     String_Const_u8 ext_name;

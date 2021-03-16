@@ -155,7 +155,6 @@ internal void build_language_model(void)
     sm_key("transmute");
     sm_key("distinct");
     sm_key("opaque");
-    sm_key("inline");
     sm_key("no_inline");
     sm_key("size_of");
     sm_key("align_of");
@@ -324,6 +323,8 @@ internal void build_language_model(void)
     sm_key("bounds_check");
     sm_key("no_bounds_check");
     sm_key("partial");
+    sm_key("force_inline");
+    sm_key("unroll");
     
     Keyword_Set *attribute_set = sm_begin_key_set("attributes");
     
