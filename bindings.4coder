@@ -28,6 +28,7 @@ keys_global = {
     { "jump_to_last_point",            "P", "Control" },
     { "list_all_functions_current_buffer_lister", "I", "Control", "Shift" },
     { "exit_4coder",          "F4", "Alt" },
+    { "jump_to_definition",   "J", "Alt" },
     { "project_fkey_command", "F1" },
     { "project_fkey_command", "F2" },
     { "project_fkey_command", "F3" },
