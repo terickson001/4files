@@ -85,6 +85,8 @@ void custom_layer_init(Application_Links *app)
 
 #endif
 
+function Arena *language_reserve_arena(Application_Links *app);
+function void language_release_arena(Application_Links *app, Arena *arena);
 
 // @todo(tyler): Use wildcard string instead of extensions
 
@@ -286,15 +288,13 @@ function b32 language_generic_parse_full_input_breaks(Code_Index_File *index, Ge
     
     Managed_Scope scope = buffer_get_managed_scope(state->app, index->buffer);
     Language **language = scope_attachment(state->app, scope, buffer_language, Language*);
-    Thread_Context *tctx = get_thread_context(state->app);
     
     if (!*language) return true;
     
     Code_Index_Table *code_index = get_code_index_table(&code_index_tables, index->buffer);
-    if (code_index)
-        tctx_release(tctx, code_index->arena);
+    if (code_index) language_release_arena(state->app, code_index->arena);
     {
-        Arena *index_arena = tctx_reserve(tctx);
+        Arena *index_arena = language_reserve_arena(state->app);
         code_index = push_array_zero(index_arena, Code_Index_Table, 1);
         code_index->buffer = index->buffer;
         code_index->arena = index_arena;
@@ -1562,4 +1562,26 @@ CUSTOM_DOC("Language specific goto_jump_at_cursor_same_panel")
             }
         }
     }
+}
+
+function Arena *language_reserve_arena(Application_Links *app)
+{
+    Thread_Context *tctx = get_thread_context(app);
+    u64 chunk_size = KB(64);
+    u64 align = 8;
+    Arena_Node *node = tctx->free_arenas;
+    if (node  != 0)
+        sll_stack_pop(tctx->free_arenas);
+    else
+        node = push_array_zero(&tctx->node_arena, Arena_Node, 1);
+    node->arena = make_arena(tctx->allocator, chunk_size, align);
+    return(&node->arena);
+}
+
+function void language_release_arena(Application_Links *app, Arena *arena)
+{
+    Thread_Context *tctx = get_thread_context(app);
+    Arena_Node *node = CastFromMember(Arena_Node, arena, arena);
+    linalloc_clear(arena);
+    sll_stack_push(tctx->free_arenas, node);
 }
