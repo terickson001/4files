@@ -43,19 +43,20 @@ function b32 odin_parse_decl(Code_Index_File *index, Generic_Parse_State *state,
         {
             case TokenOdinKind_struct:
             case TokenOdinKind_union:
-            case TokenOdinKind_enum: {
+            case TokenOdinKind_enum: 
+            case TokenOdinKind_distinct: {
                 index_new_note(index, state, Ii64(ident), CodeIndexNote_Type, parent);
                 return true;
             }break;
             
-            case TokenOdinKind_inline:
+            case TokenOdinKind_force_inline:
             case TokenOdinKind_proc: {
                 index_new_note(index, state, Ii64(ident), CodeIndexNote_Function, parent);
                 return true;
             } break;
             
             default: {
-                if (peek->kind == TokenBaseKind_Identifier)
+                if (peek->kind == TokenBaseKind_Keyword)
                 {
                     if (odin_is_builtin_type(peek))
                     {
@@ -67,14 +68,15 @@ function b32 odin_parse_decl(Code_Index_File *index, Generic_Parse_State *state,
                         index_new_note(index, state, Ii64(ident), CodeIndexNote_Function, parent);
                         return true;
                     }
-                    else
+                    
+                }
+                else if (peek->kind == TokenBaseKind_Identifier)
+                {
+                    Code_Index_Note_Kind kind = odin_ident_note(index, state, peek);
+                    if (kind != CodeIndexNote_4coderCommand)
                     {
-                        Code_Index_Note_Kind kind = odin_ident_note(index, state, peek);
-                        if (kind != CodeIndexNote_4coderCommand)
-                        {
-                            index_new_note(index, state, Ii64(ident), kind, parent);
-                            return true;
-                        }
+                        index_new_note(index, state, Ii64(ident), kind, parent);
+                        return true;
                     }
                 }
             } break;

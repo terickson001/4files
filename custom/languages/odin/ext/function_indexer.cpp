@@ -10,7 +10,7 @@ function Function_Index *odin_parse_function__findexer(Application_Links *app, C
     {
         case TokenOdinKind_ColonColon:
         case TokenOdinKind_Whitespace:
-        case TokenOdinKind_inline:
+        case TokenOdinKind_force_inline:
         case TokenOdinKind_proc:
         case TokenOdinKind_LiteralString:
         idx++;

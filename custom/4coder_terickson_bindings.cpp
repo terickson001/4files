@@ -34,6 +34,7 @@ global Arena tc_global_arena = {};
 #include "languages/nasm/nasm.cpp"
 
 // Miscellaneous
+#include "4coder_terickson_prjlib.cpp"
 #include "4coder_terickson_error_message.cpp"
 #include "4coder_terickson_scopeline.cpp"
 #include "4coder_terickson_highlight.cpp"
