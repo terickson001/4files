@@ -5,7 +5,7 @@ function b32 load_prjlib(Application_Links *app)
 {
     Scratch_Block scratch(app);
     String_Const_u8 user_directory = system_get_path(scratch, SystemPath_UserDirectory);
-    String_Const_u8 path = push_stringf(scratch, "%.*s/%s", string_expand(user_directory), library_file);
+    String_Const_u8 path = push_stringf(scratch, "%.*s%s", string_expand(user_directory), library_file);
     File_Name_Data dump = dump_file(scratch, path);
     if (dump.data.str != 0)
     {

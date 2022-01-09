@@ -92,8 +92,8 @@ function Function_Index *odin_parse_function__findexer(Application_Links *app, C
             {
                 if (prefix.str == 0)
                     prefix.str = &param_string.str[tokens.tokens[idx].pos - param_range.min];
-                Code_Index_Nest *nest = code_index_get_nest(note->file, tokens.tokens[idx].pos);
-                idx = token_index_from_pos(&tokens, nest->close.max);
+                Code_Index_Nest *_nest = code_index_get_nest(note->file, tokens.tokens[idx].pos);
+                idx = token_index_from_pos(&tokens, _nest->close.max);
                 goto type_prefix;
             }
             
@@ -106,7 +106,7 @@ function Function_Index *odin_parse_function__findexer(Application_Links *app, C
                tokens.tokens[idx].kind == TokenBaseKind_Comment) idx++;
         
         //// TYPE NAME
-        type_name:
+        // type_name:
         switch (tokens.tokens[idx].sub_kind)
         {
             case TokenOdinKind_Identifier:
@@ -134,8 +134,8 @@ function Function_Index *odin_parse_function__findexer(Application_Links *app, C
             {
                 if (postfix.str == 0)
                     postfix.str = &param_string.str[tokens.tokens[idx].pos - param_range.min];
-                Code_Index_Nest *nest = code_index_get_nest(note->file, tokens.tokens[idx].pos);
-                idx = token_index_from_pos(&tokens, nest->close.max);
+                Code_Index_Nest *_nest = code_index_get_nest(note->file, tokens.tokens[idx].pos);
+                idx = token_index_from_pos(&tokens, _nest->close.max);
                 goto type_postfix;
             }
             
@@ -185,8 +185,8 @@ function Function_Index *odin_parse_function__findexer(Application_Links *app, C
             {
                 if (default_value.str == 0)
                     default_value.str = &param_string.str[tokens.tokens[idx].pos - param_range.min];
-                Code_Index_Nest *nest = code_index_get_nest(note->file, tokens.tokens[idx].pos);
-                idx = token_index_from_pos(&tokens, nest->close.max);
+                Code_Index_Nest *_nest = code_index_get_nest(note->file, tokens.tokens[idx].pos);
+                idx = token_index_from_pos(&tokens, _nest->close.max);
                 goto param_default;
             }
             
@@ -204,7 +204,7 @@ function Function_Index *odin_parse_function__findexer(Application_Links *app, C
             idx++;
             goto param_default;
         }
-        default_value = string_skip_chop_whitespace(default_value);
+        // default_value = string_skip_chop_whitespace(default_value);
         
         //// SKIP TO COMMA or PAREN
         skip_rest:
@@ -259,13 +259,14 @@ function List_String_Const_u8 odin_parameter_strings(Function_Index *index, Aren
 #undef string_expand_nonnull
 static Language_Function_Indexer odin_function_indexer =
 {
-    .lang = &language_def_odin,
-    .parse_function = odin_parse_function__findexer,
-    .parameter_strings = odin_parameter_strings,
-    .delims {
+    &language_def_odin,
+    odin_parse_function__findexer,
+    odin_parameter_strings,
+    {
         TokenOdinKind_ParenOp, SCu8("("),
         TokenOdinKind_ParenCl, SCu8(")"),
         TokenOdinKind_Comma, SCu8(",")
     },
 };
+
 #endif

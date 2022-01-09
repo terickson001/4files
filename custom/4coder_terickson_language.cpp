@@ -124,6 +124,11 @@ function void finalize_languages(Application_Links *app)
          lang = lang->next)
     {
         lang->file_extensions = parse_extension_line_to_extension_list(app, &language_arena, lang->ext_string);
+        Arena *index_arena = language_reserve_arena(app);
+        lang->master_code_index = {0};
+        lang->master_code_index.buffer = 0;
+        lang->master_code_index.arena = index_arena;
+        index_map_init(&lang->master_code_index.notes);
     }
 }
 
@@ -292,13 +297,22 @@ function b32 language_generic_parse_full_input_breaks(Code_Index_File *index, Ge
     if (!*language) return true;
     
     Code_Index_Table *code_index = get_code_index_table(&code_index_tables, index->buffer);
-    if (code_index) language_release_arena(state->app, code_index->arena);
+    if (code_index)
+    {
+        for (int i = 0; i < array_size(code_index->notes.values); i++)
+        {
+            u64 key = code_index->notes.values[i].key;
+            index_map_remove(&(*language)->master_code_index.notes, key);
+        }
+        language_release_arena(state->app, code_index->arena);
+    }
+    
     {
         Arena *index_arena = language_reserve_arena(state->app);
         code_index = push_array_zero(index_arena, Code_Index_Table, 1);
         code_index->buffer = index->buffer;
         code_index->arena = index_arena;
-        code_index->notes = make_table_Data_u64(index_arena->base_allocator, 64);
+        index_map_init(&code_index->notes);
         set_code_index_table(&code_index_tables, index->buffer, code_index);
     }
     
@@ -333,20 +347,41 @@ function b32 language_generic_parse_full_input_breaks(Code_Index_File *index, Ge
         index->note_array = code_index_note_ptr_array_from_list(state->arena, &index->note_list);
         for (int i = 0; i < index->note_array.count; i++)
         {
-            Data str_data = *(Data *)&index->note_array.ptrs[i]->text;
-            Table_Lookup lookup = table_lookup(&code_index->notes, str_data);
-            Code_Index_Note_List *list;
-            b32 res = table_read(&code_index->notes, lookup, (u64 *)&list);
-            if (res)
+            String_Const_u8 str = index->note_array.ptrs[i]->text;
+            u64 key = hash_crc64(str.str, str.size);
+            Code_Index_Note_List **list = index_map_get(&code_index->notes, key);
+            if (list)
             {
-                sll_queue_push(list->first, list->last, index->note_array.ptrs[i]);
+                sll_queue_push((*list)->first, (*list)->last, index->note_array.ptrs[i]);
             }
             else
             {
-                list = push_array_zero(code_index->arena, Code_Index_Note_List, 1);
+                Code_Index_Note_List *l;
+                list = &l;
+                (*list) = push_array_zero(code_index->arena, Code_Index_Note_List, 1);
                 Code_Index_Note *note = push_array_write(code_index->arena, Code_Index_Note, 1, index->note_array.ptrs[i]);
-                sll_queue_push(list->first, list->last, note);
-                table_insert(&code_index->notes, str_data, HandleAsU64(list));
+                sll_queue_push((*list)->first, (*list)->last, note);
+                index_map_set(&code_index->notes, key, (*list));
+            }
+            
+            Code_Index_Note *note = push_array_write((*language)->master_code_index.arena, Code_Index_Note, 1, index->note_array.ptrs[i]);
+            *note = *index->note_array.ptrs[i];
+            note->next = 0;
+            note->next_in_hash = 0;
+            note->prev_in_hash = 0;
+            
+            list = index_map_get(&(*language)->master_code_index.notes, key);
+            if (list)
+            {
+                sll_queue_push((*list)->first, (*list)->last, note);
+            }
+            else
+            {
+                Code_Index_Note_List *l;
+                list = &l;
+                (*list) = push_array_zero((*language)->master_code_index.arena, Code_Index_Note_List, 1);
+                sll_queue_push((*list)->first, (*list)->last, note);
+                index_map_set(&(*language)->master_code_index.notes, key, (*list));
             }
         }
         
@@ -489,67 +524,56 @@ static void language_paint_tokens(Application_Links *app, Buffer_ID buffer, Text
         if (token->kind == TokenBaseKind_Identifier)
         {
             String_Const_u8 token_as_string = push_token_lexeme(app, scratch, buffer, token);
-            Data str_data = *(Data *)&token_as_string;
             
-            for (Buffer_ID buf = get_buffer_next(app, 0, Access_Always);
-                 buf != 0;
-                 buf = get_buffer_next(app, buf, Access_Always))
+            Code_Index_Table *code_index = &(*language)->master_code_index;
+            Code_Index_Note_List **list_ref = index_map_get(&code_index->notes, hash_crc64(token_as_string.str, token_as_string.size));
+            
+            if (!list_ref || !(*list_ref)->first) goto END;
+            Code_Index_Note_List *list = *list_ref;
+            
+            for (Code_Index_Note *note = list->first; note; note = note->next)
             {
-                if (*buffer_get_language(app, buf) != *buffer_get_language(app, buffer)) continue;
-                
-                Code_Index_Table *code_index = get_code_index_table(&code_index_tables, buf);
-                if (code_index == 0)
-                    continue;
-                
-                Table_Lookup lookup = table_lookup(&code_index->notes, str_data);
-                Code_Index_Note_List *list;
-                b32 res = table_read(&code_index->notes, lookup, (u64 *)&list);
-                if (!res || !list || !list->first) continue;
-                
-                for (Code_Index_Note *note = list->first; note; note = note->next)
+                switch (note->note_kind)
                 {
-                    switch (note->note_kind)
+                    case CodeIndexNote_Type:
                     {
-                        case CodeIndexNote_Type:
+                        custom_note_color_used = true;
+                        Range_i64 range = {};
+                        range.start = token->pos;
+                        range.end = token->pos + token->size;
+                        paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_type_name));
+                    } break;
+                    case CodeIndexNote_Macro:
+                    case CodeIndexNote_Function:
+                    {
+                        Token *peek;
+                        do
                         {
-                            custom_note_color_used = true;
-                            Range_i64 range = {};
-                            range.start = token->pos;
-                            range.end = token->pos + token->size;
-                            paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_type_name));
-                        } break;
-                        case CodeIndexNote_Macro:
-                        case CodeIndexNote_Function:
-                        {
-                            Token *peek;
-                            do
-                            {
-                                token_it_inc_all(&it);
-                                peek = token_it_read(&it);
-                            } while (peek->kind == TokenBaseKind_Whitespace);
-                            it = token_iterator(it.user_id, it.tokens, it.count, token);
-                            
-                            b32 invalid = false;
-                            if (peek->kind != TokenBaseKind_ParentheticalOpen && token->pos != note->pos.min)
-                                invalid = true;
-                            if (invalid) continue;
-                            
-                            custom_note_color_used = true;
-                            
-                            Range_i64 range = {};
-                            range.start = token->pos;
-                            range.end = token->pos + token->size;
-                            paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_function_name));
-                        } break;
+                            token_it_inc_all(&it);
+                            peek = token_it_read(&it);
+                        } while (peek->kind == TokenBaseKind_Whitespace);
+                        it = token_iterator(it.user_id, it.tokens, it.count, token);
                         
-                        default: continue;
-                    }
-                    break;
+                        b32 invalid = false;
+                        if (peek->kind != TokenBaseKind_ParentheticalOpen && token->pos != note->pos.min)
+                            invalid = true;
+                        if (invalid) continue;
+                        
+                        custom_note_color_used = true;
+                        
+                        Range_i64 range = {};
+                        range.start = token->pos;
+                        range.end = token->pos + token->size;
+                        paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_function_name));
+                    } break;
+                    
+                    default: continue;
                 }
+                break;
             }
         }
         // END: Check Notes
-        
+        END:
         if (!custom_note_color_used)
         {
             FColor color = (*language)->get_token_color(*token);

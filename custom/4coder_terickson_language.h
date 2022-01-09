@@ -1,6 +1,7 @@
 #ifndef TERICKSON_LANGUAGE_H
 #define TERICKSON_LANGUAGE_H
-
+#include "4coder_terickson_hashmap.cpp"
+#include <string.h>
 typedef String_Const_u8 Data;
 
 typedef struct Extension_Support
@@ -58,6 +59,15 @@ enum Language_Hook_Kind
 
 global Hook_List LANGUAGE_HOOKS[HOOK_COUNT] = {0};
 
+HASHMAP(Index, index, Code_Index_Note_List *);
+struct Code_Index_Table
+{
+    Buffer_ID buffer;
+    Arena *arena;
+    Index_Map notes;
+    // Table_Data_u64 notes;
+};
+
 struct Language
 {
     String_Const_u8 name;
@@ -76,6 +86,7 @@ struct Language
     
     Extension_Support_Table extension_support;
     String_Const_u8_Array file_extensions;
+    Code_Index_Table master_code_index;
     
     Language *next;
 };
@@ -125,12 +136,6 @@ function void push_language(Language *lang);
 function void finalize_languages(Application_Links *app);
 
 /***** CODE INDEX *****/
-struct Code_Index_Table
-{
-    Buffer_ID buffer;
-    Arena *arena;
-    Table_Data_u64 notes;
-};
 
 function Code_Index_Nest*
 language_generic_parse_scope(Code_Index_File *index, Generic_Parse_State *state, b32 allow_decl);

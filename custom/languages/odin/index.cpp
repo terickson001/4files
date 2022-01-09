@@ -50,6 +50,7 @@ function b32 odin_parse_decl(Code_Index_File *index, Generic_Parse_State *state,
             }break;
             
             case TokenOdinKind_force_inline:
+            case TokenOdinKind_type:
             case TokenOdinKind_proc: {
                 index_new_note(index, state, Ii64(ident), CodeIndexNote_Function, parent);
                 return true;
@@ -82,6 +83,29 @@ function b32 odin_parse_decl(Code_Index_File *index, Generic_Parse_State *state,
             } break;
         }
     }
+    else if (peek != 0 && peek->sub_kind == TokenOdinKind_Colon)
+    {
+        generic_parse_inc(state);
+        generic_parse_skip_soft_tokens(index, state);
+        peek = token_it_read(&state->it);
+        if (peek == 0)
+            return false;
+        
+        if (peek->kind == TokenBaseKind_Keyword && odin_is_builtin_proc(peek))
+        {
+            index_new_note(index, state, Ii64(ident), CodeIndexNote_Function, parent);
+            return true;
+        }
+        else if (peek->kind == TokenBaseKind_Identifier)
+        {
+            Code_Index_Note_Kind kind = odin_ident_note(index, state, peek);
+            if (kind != CodeIndexNote_4coderCommand)
+            {
+                index_new_note(index, state, Ii64(ident), kind, parent);
+                return true;
+            }
+        }
+    }
     
     return false;
 }
@@ -91,13 +115,45 @@ function b32 odin_try_index(Code_Index_File *index, Generic_Parse_State *state)
     Token *token = token_it_read(&state->it);
     if (token->sub_kind == TokenOdinKind_Identifier)
     {
+        /*
+                generic_parse_inc(state);
+                generic_parse_skip_soft_tokens(index, state);
+        */
+        if (!odin_parse_decl(index, state, 0, token))
+        {
+            state->it = token_iterator(state->it.user_id, state->it.tokens, state->it.count, token);
+            return false;
+        }
+        return true;
+        /*
+                if (peek->sub_kind == TokenOdinKind_ColonColon)
+                    return odin_parse_decl(index, state, 0, token)
+        */
+    }
+    else if (token->sub_kind == TokenOdinKind_foreign)
+    {
+        
         generic_parse_inc(state);
         generic_parse_skip_soft_tokens(index, state);
         Token *peek = token_it_read(&state->it);
-        state->it = token_iterator(state->it.user_id, state->it.tokens, state->it.count, token);
+        if (peek->sub_kind == TokenOdinKind_import)
+        {
+            state->it = token_iterator(state->it.user_id, state->it.tokens, state->it.count, token);
+            return false;
+        }
+        else if (peek->kind == TokenBaseKind_Identifier)
+        {
+            generic_parse_inc(state);
+            generic_parse_skip_soft_tokens(index, state);
+            peek = token_it_read(&state->it);
+        }
         
-        if (peek->sub_kind == TokenOdinKind_ColonColon)
-            return odin_parse_decl(index, state, 0, token);
+        if (peek->kind == TokenBaseKind_ScopeOpen)
+        {
+            generic_parse_inc(state);
+            generic_parse_skip_soft_tokens(index, state);
+            return true;
+        }
     }
     
     return false;
