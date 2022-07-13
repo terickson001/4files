@@ -7,6 +7,7 @@ global Arena language_arena = {};
 //   4coder_language_ids.cpp
 //   4coder_terickson_language.h
 //   4coder_terickson_language.cpp
+//   4coder_terickson_hashmap.cpp
 
 // In your bindings file (or `4coder_default_bindings.cpp`) you
 // have to #include "4coder_language_ids.cpp" _immediately_ following
