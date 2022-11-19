@@ -1,0 +1,67 @@
+// Created by: Tyler Erickson
+
+defcolor_00 = 0xFF12171f;
+defcolor_01 = 0xFF343d46;
+defcolor_02 = 0xFF344259;
+defcolor_03 = 0xFF455573;
+defcolor_04 = 0xFFb4b3b8;
+defcolor_05 = 0xFFbfbec3;
+defcolor_06 = 0xFFd9d8de;
+defcolor_07 = 0xFFd4d3d9;
+defcolor_08 = 0xFFbf616a;
+defcolor_09 = 0xFFd08770;
+defcolor_0A = 0xFFebcb8b;
+defcolor_0B = 0xFFa3be8c;
+defcolor_0C = 0xFF96b5b4;
+defcolor_0D = 0xFF8fa1b3;
+defcolor_0E = 0xFFb48ead;
+defcolor_0F = 0xFFab7967;
+
+defcolor_back = defcolor_00;
+defcolor_margin = defcolor_01;
+defcolor_margin_hover = defcolor_02;
+defcolor_margin_active = defcolor_02;
+defcolor_list_item = {defcolor_margin, defcolor_back};
+defcolor_list_item_hover = {defcolor_margin_hover, defcolor_margin};
+defcolor_list_item_active = {defcolor_margin_active, defcolor_margin_active};
+defcolor_cursor = {defcolor_05, defcolor_05};
+defcolor_at_cursor = defcolor_back;
+defcolor_highlight_cursor_line = defcolor_02;
+defcolor_highlight = defcolor_02;
+defcolor_mark = defcolor_04;
+defcolor_text_default = defcolor_05;
+defcolor_at_highlight = defcolor_00;
+defcolor_comment = defcolor_03;
+defcolor_comment_pop = {0xFF00A000, 0xFFA00000}; // TODO
+defcolor_keyword = defcolor_0E;
+defcolor_str_constant = defcolor_0B;
+defcolor_char_constant = defcolor_0B;
+defcolor_int_constant = defcolor_09;
+defcolor_float_constant = defcolor_09;
+defcolor_bool_constant = defcolor_09;
+defcolor_include = defcolor_0A;
+defcolor_preproc = defcolor_0A;
+defcolor_special_character = 0xFFFF0000; // TODO
+defcolor_ghost_character = defcolor_03;
+
+defcolor_paste = 0xFFFFBB00; // TODO
+
+defcolor_undo = 0xFF80005D; // TODO
+
+defcolor_highlight_junk = 0x80500000; // TODO
+defcolor_highlight_white = 0xFF003A3A; // TODO
+
+defcolor_bar = 0xFFCACACA;
+defcolor_bar_active = 0xFFA8A8A8;
+defcolor_base = 0xFF000000;
+defcolor_pop1 = 0xFF03CF0C;
+defcolor_pop2 = 0xFFFF0000;
+
+defcolor_back_cycle = {defcolor_back};
+defcolor_text_cycle = {defcolor_text_default};
+
+defcolor_line_numbers_back = defcolor_00;
+defcolor_line_numbers_text = defcolor_01;
+
+defcolor_function_name = defcolor_0D;
+defcolor_type_name     = defcolor_0A;
