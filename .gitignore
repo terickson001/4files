@@ -21,6 +21,7 @@ themes/*
 !themes/theme-naysayer.4coder
 !themes/theme-base16-*.4coder
 !themes/theme-nord.4coder
+!themes/theme-liqube.4coder
 
 custom/4coder_audio.cpp
 custom/4coder_audio.h
