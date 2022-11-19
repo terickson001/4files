@@ -56,6 +56,8 @@ static FColor glsl_get_token_color(Token token)
                 color = defcolor_type_name;
             else if (glsl_is_builtin_proc(&token))
                 color = defcolor_function_name;
+			else
+				color = defcolor_identifier;
         } break;
     }
     return(fcolor_id(color));

@@ -52,3 +52,4 @@ defcolor_line_numbers_text = 0xFF082628;
 
 defcolor_function_name = 0xFFD4D4D4;
 defcolor_type_name     = 0xFF86E08f;
+defcolor_identifier    = defcolor_text;

@@ -74,6 +74,8 @@ static FColor odin_get_token_color(Token token)
                 color = defcolor_type_name;
             else if (odin_is_builtin_proc(&token))
                 color = defcolor_function_name;
+			else
+				color = defcolor_identifier;
         }break;
     }
     return(fcolor_id(color));

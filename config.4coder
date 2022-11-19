@@ -56,12 +56,12 @@ automatically_save_changes_on_build = true;
 automatically_load_project = true;
 
 // Indentation
-indent_with_tabs = false;
+indent_with_tabs = true;
 indent_width = 4;
 default_tab_width = 4;
 
 // Theme
-default_theme_name = "theme-naysayer";
+default_theme_name = "theme-liqube";
 
 // Font
 default_font_name = "Inconsolata-Regular-Nerd.otf";
