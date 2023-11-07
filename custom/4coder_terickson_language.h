@@ -1,6 +1,6 @@
 #ifndef TERICKSON_LANGUAGE_H
 #define TERICKSON_LANGUAGE_H
-#include "4coder_terickson_hashmap.cpp"
+#include "4coder_terickson_hashmap2.cpp"
 #include <string.h>
 typedef String_Const_u8 Data;
 
@@ -59,7 +59,7 @@ enum Language_Hook_Kind
 
 global Hook_List LANGUAGE_HOOKS[HOOK_COUNT] = {0};
 
-HASHMAP(Index, index, Code_Index_Note_List *);
+//HASHMAP(Index, index, Code_Index_Note_List *);
 struct Code_Index_Table
 {
     Buffer_ID buffer;
