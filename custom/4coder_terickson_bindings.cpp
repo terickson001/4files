@@ -23,7 +23,9 @@ global Arena tc_global_arena = {};
 
 // Extensions
 #include "ext/4coder_terickson_function_index.cpp"
+#if 0
 #include "ext/4coder_terickson_std_include.cpp"
+#endif
 #include "ext/4coder_terickson_todo.cpp"
 
 // Languages
@@ -57,7 +59,7 @@ custom_layer_init(Application_Links *app)
     init_ext_language();
     
     // Language Dependent Extensions
-    init_ext_std_include();
+    //init_ext_std_include();
     init_ext_todo();
     
     // Language Definitions
