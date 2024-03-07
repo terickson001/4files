@@ -201,9 +201,12 @@ typedef struct Index_Map_Entry
 
 typedef struct Index_Map
 {
-	Array(i64) hashes;
-	Array(Index_Map_Entry) values;
+	i64 n_hashes;
+	i64 *hashes;
+	i64 n_values;
+	Index_Map_Entry *values;
 } Index_Map;
+
 void index_map_init(Index_Map *map);
 void index_map_destroy(Index_Map *map);
 Code_Index_Note_List **index_map_get(Index_Map *map, u64 key);
@@ -215,9 +218,9 @@ void index_map_rehash(Index_Map *map, i64 new_size);
 static HashmapSearchResult index_map_find(Index_Map *map, u64 key)
 {
 	HashmapSearchResult res = {-1, -1, -1};
-	if (array_size(map->hashes) > 0)
+	if (map->n_hashes > 0)
 	{
-		res.hash_index = key % array_size(map->hashes);
+		res.hash_index = key % map->n_hashes;
 		res.value_index = map->hashes[res.hash_index];
 		while (res.value_index >= 0)
 		{
@@ -232,12 +235,13 @@ static HashmapSearchResult index_map_find(Index_Map *map, u64 key)
 
 static b32 index_map_is_full(Index_Map *map)
 {
-	return 0.75f * array_size(map->hashes) < array_size(map->values);
+	return 0.75f * map->n_hashes < map->n_values;
 }
 
 void index_map_init(Index_Map *map)
 {
-	array_init(&map->hashes);
+	map->hashes = calloc(1, ARRAY_GROWTH(0));
+	map->values = calloc(1, ARRAY_GROWTH(0));
 	array_init(&map->values);
 }
 

@@ -64,7 +64,7 @@ default_tab_width = 4;
 default_theme_name = "theme-liqube";
 
 // Font
-default_font_name = "Inconsolata-Regular-Nerd.otf";
+default_font_name = "Inconsolata-Regular.ttf";
 default_font_size = 16;
 default_font_hinting = false;
 
