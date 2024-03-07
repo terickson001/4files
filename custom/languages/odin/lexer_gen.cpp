@@ -8,49 +8,50 @@ internal void build_language_model(void)
 {
     u8 utf8[129];
     smh_utf8_fill(utf8);
-    
+
     smh_set_base_character_names();
     smh_typical_tokens();
-    
+
     sm_char_name('!', "Not");
     sm_char_name('&', "And");
     sm_char_name('|', "Or");
     sm_char_name('%', "Mod");
     sm_char_name('?', "Ternary");
     sm_char_name('/', "Div");
-    
+
     sm_select_base_kind(TokenBaseKind_Comment);
     sm_direct_token_kind("BlockComment");
     sm_direct_token_kind("LineComment");
-    
+
     sm_select_base_kind(TokenBaseKind_Whitespace);
     sm_direct_token_kind("Backslash");
-    
+    sm_direct_token_kind("EOL");
+
     sm_select_base_kind(TokenBaseKind_LiteralInteger);
     sm_direct_token_kind("LiteralInteger");
     sm_direct_token_kind("LiteralIntegerHex");
     sm_direct_token_kind("LiteralIntegerOct");
     sm_direct_token_kind("LiteralIntegerDoz");
     sm_direct_token_kind("LiteralIntegerBin");
-    
+
     sm_select_base_kind(TokenBaseKind_LiteralFloat);
     sm_direct_token_kind("LiteralFloat");
-    
+
     sm_select_base_kind(TokenBaseKind_LiteralString);
     sm_direct_token_kind("LiteralString");
     sm_direct_token_kind("LiteralCharacter");
     sm_direct_token_kind("LiteralStringRaw");
-    
+
     sm_select_base_kind(TokenBaseKind_Keyword);
     sm_direct_token_kind("KeywordGeneric");
     sm_direct_token_kind("KeywordAttribute");
     sm_direct_token_kind("KeywordDirective");
-    
+
     sm_select_base_kind(TokenBaseKind_ParentheticalOpen);
     sm_direct_token_kind("AttributeOpen");
     sm_select_base_kind(TokenBaseKind_ParentheticalClose);
     sm_direct_token_kind("AttributeClose");
-    
+
     // Odin Operators
     Operator_Set *main_ops = sm_begin_op_set();
     sm_select_base_kind(TokenBaseKind_ScopeOpen);
@@ -70,7 +71,7 @@ internal void build_language_model(void)
     sm_op("..");
     sm_op("..<");
     sm_op(":");
-    
+
     sm_op("::");
     sm_op(".");
     sm_op("+");
@@ -81,12 +82,12 @@ internal void build_language_model(void)
     sm_op("&");
     sm_op("/");
     sm_op("%");
-    
+
     sm_char_name('<', "Left");
     sm_char_name('>', "Right");
     sm_op("<<");
     sm_op(">>");
-    
+
     sm_char_name('<', "Less");
     sm_char_name('>', "Grtr");
     sm_op("<");
@@ -95,7 +96,7 @@ internal void build_language_model(void)
     sm_op(">=");
     sm_op("==");
     sm_op("!=");
-    
+
     sm_op("^");
     sm_op("|");
     sm_op("&&");
@@ -107,21 +108,21 @@ internal void build_language_model(void)
     sm_op("*=");
     sm_op("/=");
     sm_op("%=");
-    
+
     sm_char_name('<', "Left");
     sm_char_name('>', "Right");
     sm_op("<<=");
     sm_op(">>=");
-    
+
     sm_select_base_kind(TokenBaseKind_StatementClose);
     sm_op(",");
-    
-    
+
+
     // Odin Keywords
     Keyword_Set *main_keys = sm_begin_key_set("main_keys");
-    
+
     sm_select_base_kind(TokenBaseKind_Keyword);
-    
+
     sm_key("using");
     sm_key("import");
     sm_key("foreign");
@@ -161,14 +162,14 @@ internal void build_language_model(void)
     sm_key("offset_of");
     sm_key("type_of");
     sm_key("context");
-    
+
     sm_select_base_kind(TokenBaseKind_LiteralInteger);
     sm_key("LiteralTrue",  "true");
     sm_key("LiteralFalse", "false");
     sm_key("LiteralNil", "nil");
-    
+
     sm_select_base_kind(TokenBaseKind_Keyword);
-    
+
     // Builtin Types
     sm_key("byte");
     sm_key("bool");
@@ -223,7 +224,7 @@ internal void build_language_model(void)
     sm_key("u64be");
     sm_key("i128be");
     sm_key("u128be");
-    
+
     // Builtin Procs
     sm_key("len");
     sm_key("cap");
@@ -246,7 +247,7 @@ internal void build_language_model(void)
     sm_key("max");
     sm_key("abs");
     sm_key("clamp");
-    
+
     // @builtins
     sm_key("init_global_temporary_allocator");
     sm_key("copy_slice");
@@ -296,14 +297,14 @@ internal void build_language_model(void)
     sm_key("incl");
     sm_key("excl");
     sm_key("card");
-    
+
     sm_select_base_kind(TokenBaseKind_Identifier);
     sm_key_fallback("Identifier");
-    
+
     Keyword_Set *directive_set = sm_begin_key_set("directives");
-    
+
     sm_select_base_kind(TokenBaseKind_Keyword);
-    
+
     sm_key("align");
     sm_key("packed");
     sm_key("raw_union");
@@ -325,11 +326,11 @@ internal void build_language_model(void)
     sm_key("partial");
     sm_key("force_inline");
     sm_key("unroll");
-    
+
     Keyword_Set *attribute_set = sm_begin_key_set("attributes");
-    
+
     sm_select_base_kind(TokenBaseKind_Keyword);
-    
+
     sm_key("builtin");
     sm_key("export");
     sm_key("static");
@@ -343,57 +344,60 @@ internal void build_language_model(void)
     sm_key("deprecated");
     sm_key("private");
     sm_key("thread_local");
-    
+
     // State Machine
     State *root = sm_begin_state_machine();
-    
+
     Flag *is_hex = sm_add_flag(FlagResetRule_AutoZero);
     Flag *is_oct = sm_add_flag(FlagResetRule_AutoZero);
     Flag *is_doz = sm_add_flag(FlagResetRule_AutoZero);
     Flag *is_bin = sm_add_flag(FlagResetRule_AutoZero);
-    
+
     Flag *is_char = sm_add_flag(FlagResetRule_AutoZero);
     Flag *is_raw = sm_add_flag(FlagResetRule_AutoZero);
-    
+
     Flag *is_attribute_block = sm_add_flag(FlagResetRule_KeepState);
-    
+
+
     Flag *TRUE = sm_add_flag(FlagResetRule_KeepState);
     sm_flag_bind(is_attribute_block, TokenBaseFlag_PreprocessorBody);
-    
+
 #define AddState(N) State *N = sm_add_state(#N)
-    
+
     AddState(identifier);
     AddState(whitespace);
-    
+    AddState(carriage_return);
+    AddState(newline);
+
     AddState(operator_or_fnumber_dot);
     AddState(operator_or_comment_slash);
-    
+
     AddState(number);
     AddState(znumber);
-    
+
     AddState(fnumber_decimal);
     AddState(fnumber_exponent);
     AddState(fnumber_exponent_sign);
     AddState(fnumber_exponent_digits);
-    
+
     AddState(number_hex_first);
     AddState(number_doz_first);
     AddState(number_bin_first);
-    
+
     AddState(number_hex);
     AddState(number_oct);
     AddState(number_doz);
     AddState(number_bin);
-    
+
     AddState(character);
     AddState(string);
     AddState(string_esc);
     AddState(raw_string);
-    
+
     AddState(comment_block);
     AddState(comment_block_try_close);
     AddState(comment_line);
-    
+
     AddState(attribute_first);
     AddState(attribute);
     AddState(attribute_emit);
@@ -402,34 +406,36 @@ internal void build_language_model(void)
     AddState(directive_first);
     AddState(directive);
     AddState(directive_emit);
-    
+
     Operator_Set *main_ops_without_dot_or_slash = smo_copy_op_set(main_ops);
     smo_remove_ops_with_prefix(main_ops_without_dot_or_slash, ".");
     smo_remove_ops_with_prefix(main_ops_without_dot_or_slash, "/");
-    
+
     Operator_Set *main_ops_with_dot = smo_copy_op_set(main_ops);
     smo_remove_ops_without_prefix(main_ops_with_dot, ".");
     smo_ops_string_skip(main_ops_with_dot, 1);
-    
+
     ////
-    
+
     sm_select_state(root);
-    
+
     sm_set_flag(TRUE, true);
     {
         Emit_Rule *emit = sm_emit_rule();
         sm_emit_handler_direct("EOF");
         sm_case_eof(emit);
     }
-    
+
     sm_case("abcdefghijklmnopqrstuvwxyz"
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             "_$",
             identifier);
     sm_case(utf8, identifier);
-    
-    sm_case(" \r\n\t\f\v", whitespace);
-    
+
+    sm_case(" \t\f\v", whitespace);
+    sm_case("\r", carriage_return);
+    sm_case("\n", newline);
+
     sm_case_flagged(is_attribute_block, true, ")", attribute_block_end);
     sm_case(".", operator_or_fnumber_dot);
     sm_case("/", operator_or_comment_slash);
@@ -441,26 +447,26 @@ internal void build_language_model(void)
         State *operator_state = smo_op_set_lexer_root(main_ops_without_dot_or_slash, root, "LexError");
         sm_case_peek(char_set_array, operator_state);
     }
-    
-    
+
+
     sm_case("123456789", number);
     sm_case("0", znumber);
-    
+
     sm_case("`", raw_string);
     sm_case("\"", string);
     sm_case("\'", character);
-    
+
     sm_case("@", attribute_first);
     sm_case("#", directive_first);
-    
+
     {
         Emit_Rule *emit = sm_emit_rule();
         sm_emit_handler_direct("LexError");
         sm_fallback(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(identifier);
     sm_case("abcdefghijklmnopqrstuvwxyz"
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -474,19 +480,40 @@ internal void build_language_model(void)
         sm_emit_handler_keys(main_keys);
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
-    sm_select_state(whitespace);
-    sm_case(" \t\r\n\f\v", whitespace);
+
+    sm_select_state(carriage_return);
+    sm_case("\n", newline);
     {
         Emit_Rule *emit = sm_emit_rule();
         sm_emit_handler_direct("Whitespace");
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
+    sm_select_state(newline);
+    {
+        Emit_Rule *emit = sm_emit_rule();
+        sm_emit_handler_direct("EOL");
+        sm_fallback_peek(emit);
+    }
+
+    ////
+
+    sm_select_state(whitespace);
+    sm_case(" \t\f\v", whitespace);
+    sm_case("\r", carriage_return);
+    sm_case("\n", newline);
+    {
+        Emit_Rule *emit = sm_emit_rule();
+        sm_emit_handler_direct("Whitespace");
+        sm_fallback_peek(emit);
+    }
+
+    ////
+
     sm_select_state(operator_or_comment_slash);
     sm_case("*", comment_block);
     sm_case("/", comment_line);
@@ -500,9 +527,9 @@ internal void build_language_model(void)
         sm_emit_handler_direct("Div");
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(operator_or_fnumber_dot);
     sm_case("0123456789", fnumber_decimal);
     {
@@ -517,9 +544,9 @@ internal void build_language_model(void)
         sm_emit_handler_direct("Dot");
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(number);
     sm_case("0123456789", number);
     sm_case(".", fnumber_decimal);
@@ -529,9 +556,9 @@ internal void build_language_model(void)
         sm_emit_handler_direct("LiteralInteger");
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(znumber);
     sm_case(".", fnumber_decimal);
     sm_case("Ee", fnumber_exponent);
@@ -544,9 +571,9 @@ internal void build_language_model(void)
         sm_emit_handler_direct("LiteralInteger");
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(fnumber_decimal);
     sm_case("0123456789", fnumber_decimal);
     sm_case("Ee", fnumber_exponent);
@@ -555,9 +582,9 @@ internal void build_language_model(void)
         sm_emit_handler_direct("LiteralFloat");
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(fnumber_exponent);
     sm_case("+-", fnumber_exponent_sign);
     sm_case("0123456789", fnumber_exponent_digits);
@@ -566,9 +593,9 @@ internal void build_language_model(void)
         sm_emit_handler_direct("LiteralFloat");
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(fnumber_exponent_sign);
     sm_case("0123456789", fnumber_exponent_digits);
     {
@@ -576,9 +603,9 @@ internal void build_language_model(void)
         sm_emit_handler_direct("LiteralFloat");
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(fnumber_exponent_digits);
     sm_case("0123456789", fnumber_exponent_digits);
     {
@@ -586,9 +613,9 @@ internal void build_language_model(void)
         sm_emit_handler_direct("LiteralFloat");
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(number_hex_first);
     sm_set_flag(is_hex, true);
     sm_case("0123456789abcdefABCDEF", number_hex);
@@ -597,9 +624,9 @@ internal void build_language_model(void)
         sm_emit_handler_direct("LexError");
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(number_hex);
     sm_case("0123456789abcdefABCDEF", number_hex);
     {
@@ -607,9 +634,9 @@ internal void build_language_model(void)
         sm_emit_handler_direct("LiteralIntegerHex");
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(number_oct);
     sm_set_flag(is_oct, true);
     sm_case("01234567", number_oct);
@@ -618,9 +645,9 @@ internal void build_language_model(void)
         sm_emit_handler_direct("LiteralIntegerOct");
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(number_doz_first);
     sm_set_flag(is_doz, true);
     sm_case("0123456789abAB", number_doz);
@@ -629,9 +656,9 @@ internal void build_language_model(void)
         sm_emit_handler_direct("LexError");
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(number_doz);
     sm_case("0123456789abcdefABCDEF", number_doz);
     {
@@ -639,9 +666,9 @@ internal void build_language_model(void)
         sm_emit_handler_direct("LiteralIntegerDoz");
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(number_bin_first);
     sm_set_flag(is_bin, true);
     sm_case("_", number_bin_first);
@@ -651,9 +678,9 @@ internal void build_language_model(void)
         sm_emit_handler_direct("LexError");
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(number_bin);
     sm_case("01_", number_bin);
     {
@@ -661,25 +688,25 @@ internal void build_language_model(void)
         sm_emit_handler_direct("LiteralIntegerBin");
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(attribute_first);
     sm_delim_mark_first();
     sm_case("(", attribute_block);
     sm_fallback_peek(attribute);
-    
+
     ////
-    
+
     sm_select_state(attribute);
     sm_case("abcdefghijklmnopqrstuvwxyz"
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             "_",
             attribute);
     sm_fallback_peek(attribute_emit);
-    
+
     ////
-    
+
     sm_select_state(attribute_emit);
     sm_delim_mark_one_past_last();
     {
@@ -687,9 +714,9 @@ internal void build_language_model(void)
         sm_emit_handler_keys_delim(attribute_set);
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(attribute_block);
     sm_set_flag(is_attribute_block, true);
     {
@@ -697,9 +724,9 @@ internal void build_language_model(void)
         sm_emit_handler_direct("AttributeOpen");
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(attribute_block_end);
     sm_set_flag(is_attribute_block, false);
     {
@@ -708,24 +735,24 @@ internal void build_language_model(void)
         sm_fallback_peek(emit);
     }
     // sm_fallback(root);
-    
+
     ////
-    
+
     sm_select_state(directive_first);
     sm_delim_mark_first();
     sm_fallback_peek(directive);
-    
+
     ////
-    
+
     sm_select_state(directive);
     sm_case("abcdefghijklmnopqrstuvwxyz"
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             "_",
             directive);
     sm_fallback_peek(directive_emit);
-    
+
     ////
-    
+
     sm_select_state(directive_emit);
     sm_delim_mark_one_past_last();
     {
@@ -733,21 +760,21 @@ internal void build_language_model(void)
         sm_emit_handler_keys_delim(directive_set);
         sm_fallback_peek(emit);
     }
-    
+
     ////
-    
+
     sm_select_state(character);
     sm_set_flag(is_char, true);
     sm_fallback_peek(string);
-    
+
     ////
-    
+
     sm_select_state(raw_string);
     sm_set_flag(is_raw, true);
     sm_fallback_peek(string);
-    
+
     ////
-    
+
     sm_select_state(string);
     {
         Emit_Rule *emit = sm_emit_rule();
@@ -765,7 +792,7 @@ internal void build_language_model(void)
         sm_case_flagged(is_char, false, "\"", emit);
     }
     sm_case_flagged(is_raw, false, "\\", string_esc);
-    
+
     {
         Emit_Rule *emit = sm_emit_rule();
         sm_emit_handler_direct("LexError");
@@ -780,9 +807,9 @@ internal void build_language_model(void)
     sm_case_flagged(is_raw, true, "`", string);
     sm_case_flagged(is_raw, false, "'", string);
     sm_fallback(string);
-    
+
     ////
-    
+
     sm_select_state(string_esc);
     sm_case("\n'\"?\\abfnrtv01234567xuU", string);
     {
@@ -796,9 +823,9 @@ internal void build_language_model(void)
         sm_case_eof_peek(emit);
     }
     sm_fallback(string);
-    
+
     ////
-    
+
     sm_select_state(comment_block);
     sm_case("*", comment_block_try_close);
     {
@@ -807,9 +834,9 @@ internal void build_language_model(void)
         sm_case_eof_peek(emit);
     }
     sm_fallback(comment_block);
-    
+
     ////
-    
+
     sm_select_state(comment_block_try_close);
     {
         Emit_Rule *emit = sm_emit_rule();
@@ -823,9 +850,9 @@ internal void build_language_model(void)
     }
     sm_case("*", comment_block_try_close);
     sm_fallback(comment_block);
-    
+
     ////
-    
+
     sm_select_state(comment_line);
     {
         Emit_Rule *emit = sm_emit_rule();
