@@ -16,6 +16,7 @@
 #include "generated/managed_id_metadata.cpp"
 
 global Arena tc_global_arena = {};
+global b32 tc_debug_toggle = true;
 
 #include "4coder_terickson_helper.cpp"
 

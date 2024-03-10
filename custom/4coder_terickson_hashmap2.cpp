@@ -1,104 +1,6 @@
 #define Array(Type) Type *
-
-typedef struct ArrayHeader {
-    i32 capacity;
-    i32 size;
-} ArrayHeader;
-
-#define ARRAY_HEADER(arr) ((ArrayHeader*)(arr)-1)
-#define array_capacity(arr) (ARRAY_HEADER(arr)->capacity)
-#define array_size(arr) (ARRAY_HEADER(arr)->size)
-
-#define ARRAY_GROWTH(x) (2*x)+8
-
-#define make_array_reserve(arr_ref, cap) do {                           \
-ArrayHeader *_header =                                          \
-(ArrayHeader *)calloc(1, sizeof(ArrayHeader)+((cap)*sizeof(**(arr_ref)))); \
-_header->capacity = (i32)cap;                                        \
-_header->size = 0;                                              \
-*((void**)arr_ref) = (void*)(_header+1);                                \
-} while (0)
-
-#define array_init(arr_ref) make_array_reserve(arr_ref, ARRAY_GROWTH(0));
-
-#define array_set_capacity(arr_ref, cap) _array_set_capacity((void**)(arr_ref), (i32)cap, sizeof(**(arr_ref)))
-
-#define array_set_size(arr_ref, new_size) do { \
-if (array_capacity(*(arr_ref)) < (new_size))    \
-array_set_capacity(arr_ref, (new_size));    \
-ARRAY_HEADER(*(arr_ref))->size = (i32)new_size;      \
-} while (0)
-
-#define array_grow(arr_ref, min_cap) do {                               \
-i64 new_cap = ARRAY_GROWTH(array_size(*(arr_ref)));           \
-if (new_cap < min_cap)                                          \
-new_cap = min_cap;                                          \
-array_set_capacity(arr_ref, new_cap);                           \
-} while (0)
-
-#define array_reserve(arr_ref, cap) do {                \
-if (array_capacity(*(arr_ref)) < (cap))         \
-array_set_capacity(arr_ref, (cap));         \
-} while (0)
-
-#define array_shrink(arr_ref) _array_shrink((void **)(arr_ref), sizeof(**(arr_ref)))
-
-#define array_append(arr_ref, x) do {                           \
-ArrayHeader *header = (ARRAY_HEADER(*(arr_ref)));       \
-if (header->capacity == header->size)                   \
-array_grow(arr_ref, 0);                             \
-(*(arr_ref))[array_size(*(arr_ref))++] = (x);           \
-} while (0)
-
-#define array_appendv(arr_ref, items, item_count) do {                  \
-ArrayHeader *header = ARRAY_HEADER(*(arr_ref));                 \
-assert(sizeof((items)[0]) == sizeof((*(arr_ref))[0]));          \
-if (header->capacity < header->size+(item_count))               \
-array_grow(arr_ref, header->size+(item_count));             \
-memcpy(&(*(arr_ref))[array_size(*(arr_ref))], (items), sizeof(*(arr_ref)[0])*(item_count)); \
-array_size(*(arr_ref)) += (item_count);                         \
-} while (0)
-
-#define array_pop(arr_ref) ((*(arr_ref))[--array_size(*(arr_ref))])
-
-#define array_free(arr) do {                \
-if (!arr)                           \
-break;                          \
-free(ARRAY_HEADER(arr));            \
-} while (0);
-
-void _array_set_capacity(void **arr_ref, i32 capacity, i32 elem_size);
-void _array_shrink(void **arr_ref, i32 elem_size);
-
 #include <string.h>
-void _array_set_capacity(void **arr_ref, i32 capacity, i32 elem_size)
-{
-    if (!arr_ref) return;
-	
-    ArrayHeader *header = ARRAY_HEADER(*arr_ref);
-    if (header->capacity >= capacity) return;
-	
-    ArrayHeader *new_header = (ArrayHeader *)calloc(1, sizeof(ArrayHeader)+(capacity*elem_size));
-    memcpy(new_header, header, sizeof(ArrayHeader)+(header->size*elem_size));
-    free(header);
-    new_header->capacity = capacity;
-    *arr_ref = (void*)(new_header+1);
-}
-
-void _array_shrink(void **arr_ref, i32 elem_size)
-{
-    if (!arr_ref) return;
-	
-    ArrayHeader *header = ARRAY_HEADER(*arr_ref);
-    if (header->capacity == header->size) return;
-	
-    ArrayHeader *new_header = (ArrayHeader*)calloc(1, sizeof(ArrayHeader)+(header->size*elem_size));
-    memcpy(new_header, header, sizeof(ArrayHeader)+(header->size*elem_size));
-    free(header);
-    new_header->capacity = new_header->size;
-    *arr_ref = (void*)(new_header+1);
-}
-
+#define ARRAY_GROWTH(x) (2*x)+8
 
 //
 // Data Structure: Hashmap
@@ -173,7 +75,6 @@ static u64 const CRC64_TABLE[256] = {
 
 u64 hash_crc64(void const *data, i64 size);
 
-
 u64 hash_crc64(void const *data, i64 size)
 {
     u64 result = ~((u64)0);
@@ -185,11 +86,96 @@ u64 hash_crc64(void const *data, i64 size)
     return ~result;
 }
 
+typedef struct Dyn_Array
+{
+	i32 size;
+	i32 capacity;
+	i32 elem_size;
+	void *data;
+} Dyn_Array;
+
+void dyn_array_make_reserve(Dyn_Array *arr, i32 cap, i32 elem_size)
+{
+	arr->data = calloc(1, elem_size * cap);
+	arr->capacity = cap;
+	arr->size = 0;
+	arr->elem_size = elem_size;
+}
+
+void dyn_array_init(Dyn_Array *arr, i32 elem_size)
+{
+	dyn_array_make_reserve(arr, ARRAY_GROWTH(0), elem_size);
+}
+
+void dyn_array_set_capacity(Dyn_Array *arr, i32 cap)
+{
+	if (arr->capacity >= cap) return;
+
+	void *new_data = calloc(1, arr->elem_size * cap);
+	memcpy(new_data, arr->data, arr->elem_size * arr->capacity);
+	free(arr->data);
+	arr->capacity = cap;
+	arr->data = new_data;
+}
+
+void dyn_array_set_size(Dyn_Array *arr, i32 new_size)
+{
+	if (arr->capacity < new_size)
+		dyn_array_set_capacity(arr, new_size);
+	arr->size = new_size;
+}
+
+void dyn_array_grow(Dyn_Array *arr, i32 min_cap)
+{
+	i32 new_cap = ARRAY_GROWTH(arr->size);
+	if (new_cap < min_cap)
+		new_cap = min_cap;
+	dyn_array_set_capacity(arr, new_cap);
+}
+
+void dyn_array_reserve(Dyn_Array *arr, i32 cap)
+{
+	if (arr->capacity < cap)
+		dyn_array_set_capacity(arr, cap);
+}
+
+void dyn_array_shrink(Dyn_Array *arr)
+{
+	if (arr->capacity == arr->size) return;
+
+	void *new_data = calloc(1, arr->elem_size * arr->size);
+	memcpy(new_data, arr->data, arr->elem_size * arr->size);
+	free(arr->data);
+	arr->capacity = arr->size;
+	arr->data = new_data;
+}
+
+void dyn_array_append(Dyn_Array *arr, void *x)
+{
+	if (arr->capacity == arr->size)
+		dyn_array_grow(arr, 0);
+	memcpy((u8*)arr->data + (arr->elem_size * arr->size), x, arr->elem_size);
+	arr->size++;
+}
+
+void dyn_array_appendv(Dyn_Array *arr, void *x, i32 x_count)
+{
+	if (arr->capacity < arr->size + x_count)
+		dyn_array_grow(arr, arr->size + x_count);
+	memcpy((u8*)arr->data + (arr->elem_size * arr->size), x, arr->elem_size*x_count);
+	arr->size += x_count;
+}
+
+void *dyn_array_get(Dyn_Array *arr, i32 idx)
+{
+	return (u8*)arr->data + (arr->elem_size * idx);
+}
+
 typedef struct HashmapSearchResult
 {
-    i64 hash_index;
-    i64 value_index;
-    i64 prev_value_index;
+	i64 hash_index;
+	i64 value_index;
+	i64 prev_value_index;
 } HashmapSearchResult;
 
 typedef struct Index_Map_Entry
@@ -201,10 +187,8 @@ typedef struct Index_Map_Entry
 
 typedef struct Index_Map
 {
-	i64 n_hashes;
-	i64 *hashes;
-	i64 n_values;
-	Index_Map_Entry *values;
+	Dyn_Array hashes;
+	Dyn_Array values;
 } Index_Map;
 
 void index_map_init(Index_Map *map);
@@ -218,16 +202,16 @@ void index_map_rehash(Index_Map *map, i64 new_size);
 static HashmapSearchResult index_map_find(Index_Map *map, u64 key)
 {
 	HashmapSearchResult res = {-1, -1, -1};
-	if (map->n_hashes > 0)
+	if (map->hashes.size > 0)
 	{
-		res.hash_index = key % map->n_hashes;
-		res.value_index = map->hashes[res.hash_index];
+		res.hash_index = key % map->hashes.size;
+		res.value_index = *(i64 *)dyn_array_get(&map->hashes, (i32)res.hash_index);
 		while (res.value_index >= 0)
 		{
-			if (map->values[res.value_index].key == key)
+			if (((Index_Map_Entry *)dyn_array_get(&map->values, (i32)res.value_index))->key == key)
 				return res;
 			res.prev_value_index = res.value_index;
-			res.value_index = map->values[res.value_index].next;
+			res.value_index = ((Index_Map_Entry *)dyn_array_get(&map->values, (i32)res.value_index))->next;
 		}
 	}
 	return res;
@@ -235,25 +219,24 @@ static HashmapSearchResult index_map_find(Index_Map *map, u64 key)
 
 static b32 index_map_is_full(Index_Map *map)
 {
-	return 0.75f * map->n_hashes < map->n_values;
+	return 0.75f * map->hashes.size < map->values.size;
 }
 
 void index_map_init(Index_Map *map)
 {
-	map->hashes = calloc(1, ARRAY_GROWTH(0));
-	map->values = calloc(1, ARRAY_GROWTH(0));
-	array_init(&map->values);
+	dyn_array_init(&map->hashes, sizeof(i64));
+	dyn_array_init(&map->values, sizeof(Index_Map_Entry));
 }
 
 void index_map_destroy(Index_Map *map)
 {
-	if (map->hashes) array_free(map->hashes);
-	if (map->values) array_free(map->values);
+	if (map->hashes.data) free(map->hashes.data);
+	if (map->values.data) free(map->values.data);
 }
 
 void index_map_grow(Index_Map *map)
 {
-	i64 new_size = ARRAY_GROWTH(array_size(map->values));
+	i64 new_size = ARRAY_GROWTH(map->values.size);
 	index_map_rehash(map, new_size);
 }
 
@@ -263,8 +246,8 @@ i64 index_map_add_entry(Index_Map *map, u64 key)
 	Index_Map_Entry e = {0};
 	e.key = key;
 	e.next = -1;
-	index = array_size(map->values);
-	array_append(&map->values, e);
+	index = map->values.size;
+	dyn_array_append(&map->values, &e);
 	return index;
 }
 
@@ -273,25 +256,26 @@ void index_map_rehash(Index_Map *map, i64 new_size)
 	i64 i, j;
 	Index_Map new_map = {0};
 	index_map_init(&new_map);
-	array_set_size(&new_map.hashes, new_size);
-	array_reserve(&new_map.values, array_size(map->values));
+	dyn_array_set_size(&new_map.hashes, (i32)new_size);
+	dyn_array_reserve(&new_map.values, map->values.size);
 	for (i = 0; i < new_size; i++)
-		new_map.hashes[i] = -1;
-	for (i = 0; i < array_size(map->values); i++)
+		*(i64 *)dyn_array_get(&new_map.hashes, (i32)i) = -1;
+	for (i = 0; i < map->values.size; i++)
 	{
 		Index_Map_Entry *entry;
 		HashmapSearchResult s_result;
-		if (array_size(new_map.hashes) == 0)
+		if (new_map.hashes.size == 0)
 			index_map_grow(&new_map);
-		entry = &map->values[i];
+		entry = (Index_Map_Entry *)dyn_array_get(&map->values, (i32)i);
 		s_result = index_map_find(&new_map, entry->key);
 		j = index_map_add_entry(&new_map, entry->key);
 		if (s_result.prev_value_index < 0)
-			new_map.hashes[s_result.hash_index] = i;
+			*(i64 *)dyn_array_get(&new_map.hashes, (i32)s_result.hash_index) = j;
 		else
-			new_map.hashes[s_result.prev_value_index] = i;
-		new_map.values[j].next = s_result.value_index;
-		new_map.values[j].value = entry->value;
+			((Index_Map_Entry *)dyn_array_get(&new_map.values, (i32)s_result.prev_value_index))->next = j;
+		Index_Map_Entry *new_entry = (Index_Map_Entry *)dyn_array_get(&new_map.values, (i32)j);
+		new_entry->next = s_result.value_index;
+		new_entry->value = entry->value;
 		if (index_map_is_full(&new_map))
 			index_map_grow(&new_map);
 	}
@@ -304,13 +288,13 @@ Code_Index_Note_List **index_map_get(Index_Map *map, u64 key)
 {
 	HashmapSearchResult s_result = index_map_find(map, key);
 	if (s_result.value_index >= 0)
-		return &map->values[s_result.value_index].value;
+		return &((Index_Map_Entry *)dyn_array_get(&map->values, (i32)s_result.value_index))->value;
 	return NULL;
 }
 
 void index_map_set(Index_Map *map, u64 key, Code_Index_Note_List * val) {
 	i64 index;
-	if (array_size(map->hashes) == 0)
+	if (map->hashes.size == 0)
 		index_map_grow(map);
 	HashmapSearchResult s_result = index_map_find(map, key);
 	if (s_result.value_index >= 0)
@@ -321,11 +305,11 @@ void index_map_set(Index_Map *map, u64 key, Code_Index_Note_List * val) {
 	{
 		index = index_map_add_entry(map, key);
 		if (s_result.prev_value_index >= 0)
-			map->values[s_result.prev_value_index].next = index;
+		((Index_Map_Entry *)dyn_array_get(&map->values, (i32)s_result.prev_value_index))->next = index;
 		else
-			map->hashes[s_result.hash_index] = index;
+			*(i64 *)dyn_array_get(&map->hashes, (i32)s_result.hash_index) = index;
 	}
-	map->values[index].value = val;
+	((Index_Map_Entry *)dyn_array_get(&map->values, (i32)index))->value = val;
 	if (index_map_is_full(map))
 		index_map_grow(map);
 }
@@ -336,22 +320,23 @@ void index_map_remove(Index_Map *map, u64 key)
 	if (s_result.value_index >= 0)
 	{
 		if (s_result.prev_value_index >= 0)
-			map->values[s_result.prev_value_index].next = map->values[s_result.value_index].next;
+		((Index_Map_Entry *)dyn_array_get(&map->values, (i32)s_result.prev_value_index))->next = ((Index_Map_Entry *)dyn_array_get(&map->values, (i32)s_result.value_index))->next;
 		else
-			map->hashes[s_result.hash_index] = map->values[s_result.value_index].next;
-		map->values[s_result.value_index] = {0};
-		map->values[s_result.value_index].next = -1;
-		
-		if (s_result.value_index != array_size(map->values)-1)
+			*(i64 *)dyn_array_get(&map->hashes, (i32)s_result.hash_index) = ((Index_Map_Entry *)dyn_array_get(&map->values, (i32)s_result.value_index))->next;
+		*((Index_Map_Entry *)dyn_array_get(&map->values, (i32)s_result.value_index)) = {0};
+		((Index_Map_Entry *)dyn_array_get(&map->values, (i32)s_result.value_index))->next = -1;
+
+		if (s_result.value_index != map->values.size-1)
 		{
-			map->values[s_result.value_index] = map->values[array_size(map->values)-1];
-			u64 old_key = map->values[s_result.value_index].key;
+			(*(Index_Map_Entry *)dyn_array_get(&map->values, (i32)s_result.value_index)) = (*(Index_Map_Entry *)dyn_array_get(&map->values, (i32)map->values.size-1));
+			u64 old_key = ((Index_Map_Entry *)dyn_array_get(&map->values, (i32)s_result.value_index))->key;
 			HashmapSearchResult last = index_map_find(map, old_key);
 			if (last.prev_value_index >= 0)
-				map->values[last.prev_value_index].next = s_result.value_index;
+			((Index_Map_Entry *)dyn_array_get(&map->values, (i32)last.prev_value_index))->next = s_result.value_index;
 			else
-				map->hashes[last.hash_index] = s_result.value_index;
+				*(i64 *)dyn_array_get(&map->hashes, (i32)last.hash_index) = s_result.value_index;
 		}
-		array_pop(&map->values);
+		//array_pop(&map->values);
+		map->values.size--;
 	}
 }

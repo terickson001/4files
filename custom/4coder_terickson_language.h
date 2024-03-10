@@ -59,7 +59,7 @@ enum Language_Hook_Kind
 
 global Hook_List LANGUAGE_HOOKS[HOOK_COUNT] = {0};
 
-//HASHMAP(Index, index, Code_Index_Note_List *);
+// HASHMAP(Index, index, Code_Index_Note_List *);
 struct Code_Index_Table
 {
     Buffer_ID buffer;
@@ -78,17 +78,17 @@ struct Language
     //               but the `Lex_State_{}` is specific to each language
     void (*lex_init)(Arena *arena, Generic_Lex_State *state, String_Const_u8 input);
     b32 (*lex_breaks)(Arena *arena, Token_List *list, Generic_Lex_State *state_ptr, u64 max);
-
+	
     Token_List (*lex_full_input)(Arena *arena, String_Const_u8 input);
     b32 (*try_index)(Code_Index_File *index, Generic_Parse_State *state);
     Code_Index_Nest *(*parse_statement)(Code_Index_File *index, Generic_Parse_State *state);
     FColor (*get_token_color)(Token token);
     Parsed_Jump (*parse_jump_location)(String_Const_u8 line);
-
+	
     Extension_Support_Table extension_support;
     String_Const_u8_Array file_extensions;
     Code_Index_Table master_code_index;
-
+	
     Language *next;
 };
 
@@ -126,7 +126,7 @@ struct Language_List
 {
     Language *first;
     Language *last;
-
+	
     i64 count;
 };
 

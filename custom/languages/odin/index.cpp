@@ -124,13 +124,14 @@ function Code_Index_Nest *odin_parse_statement(Code_Index_File *index, Generic_P
     Token *prev_non_whitespace = token;
 	for (;;){
 		token = token_it_read(&state->it);
-		if (token->sub_kind == TokenOdinKind_EOL && (odin_check_semicolon(prev_non_whitespace) || prev_non_whitespace == token)) {
-            result->is_closed = true;
-			result->close = Ii64(token);
-			generic_parse_inc(state);
-			break;
-		}
+    	if (token->sub_kind == TokenOdinKind_EOL && (odin_check_semicolon(prev_non_whitespace) || prev_non_whitespace == token)) {
+    	    result->is_closed = true;
+    		result->close = Ii64(token);
+    		generic_parse_inc(state);
+    		break;
+    	}
 		generic_parse_skip_soft_tokens(index, state);
+
 		token = token_it_read(&state->it);
 		prev_non_whitespace = token;
 		if (token == 0 || state->finished){
@@ -178,49 +179,49 @@ function Code_Index_Nest *odin_parse_statement(Code_Index_File *index, Generic_P
 
 function b32 odin_try_index(Code_Index_File *index, Generic_Parse_State *state)
 {
-    Token *token = token_it_read(&state->it);
-    if (token->sub_kind == TokenOdinKind_Identifier)
-    {
-        /*
-                generic_parse_inc(state);
-                generic_parse_skip_soft_tokens(index, state);
-        */
-        if (!odin_parse_decl(index, state, 0, token))
-        {
-            state->it = token_iterator(state->it.user_id, state->it.tokens, state->it.count, token);
-            return false;
-        }
-        return true;
-        /*
-                if (peek->sub_kind == TokenOdinKind_ColonColon)
-                    return odin_parse_decl(index, state, 0, token)
-        */
-    }
-    else if (token->sub_kind == TokenOdinKind_foreign)
-    {
+	Token *token = token_it_read(&state->it);
+	if (token->sub_kind == TokenOdinKind_Identifier)
+	{
+		/*
+				generic_parse_inc(state);
+				generic_parse_skip_soft_tokens(index, state);
+		*/
+		if (!odin_parse_decl(index, state, 0, token))
+		{
+			state->it = token_iterator(state->it.user_id, state->it.tokens, state->it.count, token);
+			return false;
+		}
+		return true;
+		/*
+				if (peek->sub_kind == TokenOdinKind_ColonColon)
+					return odin_parse_decl(index, state, 0, token)
+		*/
+	}
+	else if (token->sub_kind == TokenOdinKind_foreign)
+	{
 
-        generic_parse_inc(state);
-        generic_parse_skip_soft_tokens(index, state);
-        Token *peek = token_it_read(&state->it);
-        if (peek->sub_kind == TokenOdinKind_import)
-        {
-            state->it = token_iterator(state->it.user_id, state->it.tokens, state->it.count, token);
-            return false;
-        }
-        else if (peek->kind == TokenBaseKind_Identifier)
-        {
-            generic_parse_inc(state);
-            generic_parse_skip_soft_tokens(index, state);
-            peek = token_it_read(&state->it);
-        }
+		generic_parse_inc(state);
+		generic_parse_skip_soft_tokens(index, state);
+		Token *peek = token_it_read(&state->it);
+		if (peek->sub_kind == TokenOdinKind_import)
+		{
+			state->it = token_iterator(state->it.user_id, state->it.tokens, state->it.count, token);
+			return false;
+		}
+		else if (peek->kind == TokenBaseKind_Identifier)
+		{
+			generic_parse_inc(state);
+			generic_parse_skip_soft_tokens(index, state);
+			peek = token_it_read(&state->it);
+		}
 
-        if (peek->kind == TokenBaseKind_ScopeOpen)
-        {
-            generic_parse_inc(state);
-            generic_parse_skip_soft_tokens(index, state);
-            return true;
-        }
-    }
+		if (peek->kind == TokenBaseKind_ScopeOpen)
+		{
+			generic_parse_inc(state);
+			generic_parse_skip_soft_tokens(index, state);
+			return true;
+		}
+	}
 
-    return false;
+	return false;
 }

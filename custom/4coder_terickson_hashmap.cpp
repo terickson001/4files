@@ -15,60 +15,60 @@ typedef struct ArrayHeader {
 #define ARRAY_GROWTH(x) (2*x)+8
 
 #define make_array_reserve(arr_ref, cap) do {                           \
-        ArrayHeader *_header =                                          \
-            (ArrayHeader *)calloc(1, sizeof(ArrayHeader)+((cap)*sizeof(**(arr_ref)))); \
-        _header->capacity = (i32)cap;                                        \
-        _header->size = 0;                                              \
-        *((void**)arr_ref) = (void*)(_header+1);                                \
-    } while (0)
+ArrayHeader *_header =                                          \
+(ArrayHeader *)calloc(1, sizeof(ArrayHeader)+((cap)*sizeof(**(arr_ref)))); \
+_header->capacity = (i32)cap;                                        \
+_header->size = 0;                                              \
+*((void**)arr_ref) = (void*)(_header+1);                                \
+} while (0)
 
 #define array_init(arr_ref) make_array_reserve(arr_ref, ARRAY_GROWTH(0));
 
 #define array_set_capacity(arr_ref, cap) _array_set_capacity((void**)(arr_ref), (i32)cap, sizeof(**(arr_ref)))
 
 #define array_set_size(arr_ref, new_size) do { \
-        if (array_capacity(*(arr_ref)) < (new_size))    \
-            array_set_capacity(arr_ref, (new_size));    \
-        ARRAY_HEADER(*(arr_ref))->size = (i32)new_size;      \
-    } while (0)
+if (array_capacity(*(arr_ref)) < (new_size))    \
+array_set_capacity(arr_ref, (new_size));    \
+ARRAY_HEADER(*(arr_ref))->size = (i32)new_size;      \
+} while (0)
 
 #define array_grow(arr_ref, min_cap) do {                               \
-        i64 new_cap = ARRAY_GROWTH(array_size(*(arr_ref)));           \
-        if (new_cap < min_cap)                                          \
-            new_cap = min_cap;                                          \
-        array_set_capacity(arr_ref, new_cap);                           \
-    } while (0)
+i64 new_cap = ARRAY_GROWTH(array_size(*(arr_ref)));             \
+if (new_cap < min_cap)                                          \
+new_cap = min_cap;                                          \
+array_set_capacity(arr_ref, new_cap);                           \
+} while (0)
 
 #define array_reserve(arr_ref, cap) do {                \
-        if (array_capacity(*(arr_ref)) < (cap))         \
-            array_set_capacity(arr_ref, (cap));         \
-    } while (0)
+if (array_capacity(*(arr_ref)) < (cap))         \
+array_set_capacity(arr_ref, (cap));         \
+} while (0)
 
 #define array_shrink(arr_ref) _array_shrink((void **)(arr_ref), sizeof(**(arr_ref)))
 
 #define array_append(arr_ref, x) do {                           \
-        ArrayHeader *header = (ARRAY_HEADER(*(arr_ref)));       \
-        if (header->capacity == header->size)                   \
-            array_grow(arr_ref, 0);                             \
-        (*(arr_ref))[array_size(*(arr_ref))++] = (x);           \
-    } while (0)
+ArrayHeader *header = (ARRAY_HEADER(*(arr_ref)));       \
+if (header->capacity == header->size)                   \
+array_grow(arr_ref, 0);                             \
+(*(arr_ref))[array_size(*(arr_ref))++] = (x);           \
+} while (0)
 
 #define array_appendv(arr_ref, items, item_count) do {                  \
-        ArrayHeader *header = ARRAY_HEADER(*(arr_ref));                 \
-        assert(sizeof((items)[0]) == sizeof((*(arr_ref))[0]));          \
-        if (header->capacity < header->size+(item_count))               \
-            array_grow(arr_ref, header->size+(item_count));             \
-        memcpy(&(*(arr_ref))[array_size(*(arr_ref))], (items), sizeof(*(arr_ref)[0])*(item_count)); \
-        array_size(*(arr_ref)) += (item_count);                         \
-    } while (0)
+ArrayHeader *header = ARRAY_HEADER(*(arr_ref));                 \
+assert(sizeof((items)[0]) == sizeof((*(arr_ref))[0]));          \
+if (header->capacity < header->size+(item_count))               \
+array_grow(arr_ref, header->size+(item_count));             \
+memcpy(&(*(arr_ref))[array_size(*(arr_ref))], (items), sizeof(*(arr_ref)[0])*(item_count)); \
+array_size(*(arr_ref)) += (item_count);                         \
+} while (0)
 
 #define array_pop(arr_ref) ((*(arr_ref))[--array_size(*(arr_ref))])
 
 #define array_free(arr) do {                \
-        if (!arr)                           \
-            break;                          \
-        free(ARRAY_HEADER(arr));            \
-    } while (0);
+if (!arr)                           \
+break;                          \
+free(ARRAY_HEADER(arr));            \
+} while (0);
 
 void _array_set_capacity(void **arr_ref, i32 capacity, i32 elem_size);
 void _array_shrink(void **arr_ref, i32 elem_size);
@@ -77,10 +77,10 @@ void _array_shrink(void **arr_ref, i32 elem_size);
 void _array_set_capacity(void **arr_ref, i32 capacity, i32 elem_size)
 {
     if (!arr_ref) return;
-
+	
     ArrayHeader *header = ARRAY_HEADER(*arr_ref);
     if (header->capacity >= capacity) return;
-
+	
     ArrayHeader *new_header = (ArrayHeader *)calloc(1, sizeof(ArrayHeader)+(capacity*elem_size));
     memcpy(new_header, header, sizeof(ArrayHeader)+(header->size*elem_size));
     free(header);
@@ -91,10 +91,10 @@ void _array_set_capacity(void **arr_ref, i32 capacity, i32 elem_size)
 void _array_shrink(void **arr_ref, i32 elem_size)
 {
     if (!arr_ref) return;
-
+	
     ArrayHeader *header = ARRAY_HEADER(*arr_ref);
     if (header->capacity == header->size) return;
-
+	
     ArrayHeader *new_header = (ArrayHeader*)calloc(1, sizeof(ArrayHeader)+(header->size*elem_size));
     memcpy(new_header, header, sizeof(ArrayHeader)+(header->size*elem_size));
     free(header);
@@ -196,169 +196,169 @@ typedef struct HashmapSearchResult
 } HashmapSearchResult;
 
 #define HASHMAP_DEC(NAME, FUNC, VALUE)                           \
-    typedef struct NAME##_Map_Entry                              \
-    {                                                            \
-        u64 key;                                                 \
-        i64 next;                                                \
-        VALUE value;                                             \
-    } NAME##_Map_Entry;                                          \
-    typedef struct NAME##_Map                                    \
-    {                                                            \
-        Array(i64) hashes;                                       \
-        Array(NAME##_Map_Entry) values;                          \
-    } NAME##_Map;                                                \
-    void FUNC##_map_init(NAME##_Map *map);                       \
-    void FUNC##_map_destroy(NAME##_Map *map);                    \
-    VALUE *FUNC##_map_get(NAME##_Map *map, u64 key);             \
-    void FUNC##_map_set(NAME##_Map *map, u64 key, VALUE val);    \
-    void FUNC##_map_grow(NAME##_Map *map);                       \
-    void FUNC##_map_remove(NAME##_Map *map, u64 key);            \
-    void FUNC##_map_rehash(NAME##_Map *map, i64 new_size);
+typedef struct NAME##_Map_Entry                              \
+{                                                            \
+u64 key;                                                 \
+i64 next;                                                \
+VALUE value;                                             \
+} NAME##_Map_Entry;                                          \
+typedef struct NAME##_Map                                    \
+{                                                            \
+Array(i64) hashes;                                       \
+Array(NAME##_Map_Entry) values;                          \
+} NAME##_Map;                                                \
+void FUNC##_map_init(NAME##_Map *map);                       \
+void FUNC##_map_destroy(NAME##_Map *map);                    \
+VALUE *FUNC##_map_get(NAME##_Map *map, u64 key);             \
+void FUNC##_map_set(NAME##_Map *map, u64 key, VALUE val);    \
+void FUNC##_map_grow(NAME##_Map *map);                       \
+void FUNC##_map_remove(NAME##_Map *map, u64 key);            \
+void FUNC##_map_rehash(NAME##_Map *map, i64 new_size);
 
 #define HASHMAP_DEF(NAME, FUNC, VALUE)                                  \
-    static HashmapSearchResult FUNC##_map_find(NAME##_Map *map, u64 key) \
-    {                                                                   \
-        HashmapSearchResult res = {-1, -1, -1};                         \
-        if (array_size(map->hashes) > 0)                                \
-        {                                                               \
-            res.hash_index = key % array_size(map->hashes);             \
-            res.value_index = map->hashes[res.hash_index];              \
-            while (res.value_index >= 0)                                \
-            {                                                           \
-                if (map->values[res.value_index].key == key)            \
-                    return res;                                         \
-                res.prev_value_index = res.value_index;                 \
-                res.value_index = map->values[res.value_index].next;    \
-            }                                                           \
-        }                                                               \
-        return res;                                                     \
-    }                                                                   \
-                                                                        \
-    static b32 FUNC##_map_is_full(NAME##_Map *map)                      \
-    {                                                                   \
-        return 0.75f * array_size(map->hashes) < array_size(map->values); \
-    }                                                                   \
-                                                                        \
-    void FUNC##_map_init(NAME##_Map *map)                               \
-    {                                                                   \
-        array_init(&map->hashes);                                       \
-        array_init(&map->values);                                       \
-    }                                                                   \
-                                                                        \
-    void FUNC##_map_destroy(NAME##_Map *map)                            \
-    {                                                                   \
-        if (map->hashes) array_free(map->hashes);                       \
-        if (map->values) array_free(map->values);                       \
-    }                                                                   \
-                                                                        \
-    void FUNC##_map_grow(NAME##_Map *map)                               \
-    {                                                                   \
-        i64 new_size = ARRAY_GROWTH(array_size(map->values));         \
-        FUNC##_map_rehash(map, new_size);                               \
-    }                                                                   \
-                                                                        \
-    i64 FUNC##_map_add_entry(NAME##_Map *map, u64 key)                \
-    {                                                                   \
-        i64 index;                                                    \
-        NAME##_Map_Entry e = {0};                                       \
-        e.key = key;                                                    \
-        e.next = -1;                                                    \
-        index = array_size(map->values);                                \
-        array_append(&map->values, e);                                  \
-        return index;                                                   \
-    }                                                                   \
-                                                                        \
-    void FUNC##_map_rehash(NAME##_Map *map, i64 new_size)             \
-    {                                                                   \
-        i64 i, j;                                                     \
-        NAME##_Map new_map = {0};                                       \
-        FUNC##_map_init(&new_map);                                      \
-        array_set_size(&new_map.hashes, new_size);                      \
-        array_reserve(&new_map.values, array_size(map->values));        \
-        for (i = 0; i < new_size; i++)                                  \
-            new_map.hashes[i] = -1;                                     \
-        for (i = 0; i < array_size(map->values); i++)                   \
-        {                                                               \
-            NAME##_Map_Entry *entry;                                    \
-            HashmapSearchResult s_result;                               \
-            if (array_size(new_map.hashes) == 0)                        \
-                FUNC##_map_grow(&new_map);                              \
-            entry = &map->values[i];                                    \
-            s_result = FUNC##_map_find(&new_map, entry->key);           \
-            j = FUNC##_map_add_entry(&new_map, entry->key);             \
-            if (s_result.prev_value_index < 0)                          \
-                new_map.hashes[s_result.hash_index] = i;                \
-            else                                                        \
-                new_map.hashes[s_result.prev_value_index] = i;          \
-            new_map.values[j].next = s_result.value_index;              \
-            new_map.values[j].value = entry->value;                     \
-            if (FUNC##_map_is_full(&new_map))                           \
-                FUNC##_map_grow(&new_map);                              \
-        }                                                               \
-        FUNC##_map_destroy(map);                                        \
-        map->hashes = new_map.hashes;                                   \
-        map->values = new_map.values;                                   \
-    }                                                                   \
-                                                                        \
-    VALUE *FUNC##_map_get(NAME##_Map *map, u64 key)                     \
-    {                                                                   \
-        HashmapSearchResult s_result = FUNC##_map_find(map, key);       \
-        if (s_result.value_index >= 0)                                  \
-            return &map->values[s_result.value_index].value;            \
-        return NULL;                                                    \
-    }                                                                   \
-                                                                        \
-    void FUNC##_map_set(NAME##_Map *map, u64 key, VALUE val) {          \
-        i64 index;                                                      \
-        if (array_size(map->hashes) == 0)                               \
-            FUNC##_map_grow(map);                                       \
-        HashmapSearchResult s_result = FUNC##_map_find(map, key);       \
-        if (s_result.value_index >= 0)                                  \
-        {                                                               \
-            index = s_result.value_index;                               \
-        }                                                               \
-        else                                                            \
-        {                                                               \
-            index = FUNC##_map_add_entry(map, key);                     \
-            if (s_result.prev_value_index >= 0)                         \
-                map->values[s_result.prev_value_index].next = index; \
-            else                                                        \
-                map->hashes[s_result.hash_index] = index;               \
-        }                                                               \
-        map->values[index].value = val;                                 \
-        if (FUNC##_map_is_full(map))                                    \
-            FUNC##_map_grow(map);                                       \
-    }                                                                   \
-                                                                        \
-    void FUNC##_map_remove(NAME##_Map *map, u64 key)                    \
-    { \
-        HashmapSearchResult s_result = FUNC##_map_find(map, key);       \
-        if (s_result.value_index >= 0)                                  \
-        {                                                               \
-            if (s_result.prev_value_index >= 0)                         \
-                map->values[s_result.prev_value_index].next = map->values[s_result.value_index].next; \
-            else                                                        \
-                map->hashes[s_result.hash_index] = map->values[s_result.value_index].next; \
-            map->values[s_result.value_index] = {0};                    \
-            map->values[s_result.value_index].next = -1;                \
-                                                                        \
-            if (s_result.value_index != array_size(map->values)-1)      \
-            {                                                           \
-              map->values[s_result.value_index] = map->values[array_size(map->values)-1]; \
-              u64 old_key = map->values[s_result.value_index].key;      \
-              HashmapSearchResult last = FUNC##_map_find(map, old_key); \
-              if (last.prev_value_index >= 0)                           \
-                  map->values[last.prev_value_index].next = s_result.value_index; \
-              else                                                      \
-                  map->hashes[last.hash_index] = s_result.value_index;  \
-            }                                                           \
-            array_pop(&map->values);                                    \
-        }                                                               \
-                                                                        \
-    }
+static HashmapSearchResult FUNC##_map_find(NAME##_Map *map, u64 key) \
+{                                                                   \
+HashmapSearchResult res = {-1, -1, -1};                         \
+if (array_size(map->hashes) > 0)                                \
+{                                                               \
+res.hash_index = key % array_size(map->hashes);             \
+res.value_index = map->hashes[res.hash_index];              \
+while (res.value_index >= 0)                                \
+{                                                           \
+if (map->values[res.value_index].key == key)            \
+return res;                                         \
+res.prev_value_index = res.value_index;                 \
+res.value_index = map->values[res.value_index].next;    \
+}                                                           \
+}                                                               \
+return res;                                                     \
+}                                                                   \
+\
+static b32 FUNC##_map_is_full(NAME##_Map *map)                      \
+{                                                                   \
+return 0.75f * array_size(map->hashes) < array_size(map->values); \
+}                                                                   \
+\
+void FUNC##_map_init(NAME##_Map *map)                               \
+{                                                                   \
+array_init(&map->hashes);                                       \
+array_init(&map->values);                                       \
+}                                                                   \
+\
+void FUNC##_map_destroy(NAME##_Map *map)                            \
+{                                                                   \
+if (map->hashes) array_free(map->hashes);                       \
+if (map->values) array_free(map->values);                       \
+}                                                                   \
+\
+void FUNC##_map_grow(NAME##_Map *map)                               \
+{                                                                   \
+i64 new_size = ARRAY_GROWTH(array_size(map->values));         \
+FUNC##_map_rehash(map, new_size);                               \
+}                                                                   \
+\
+i64 FUNC##_map_add_entry(NAME##_Map *map, u64 key)                \
+{                                                                   \
+i64 index;                                                    \
+NAME##_Map_Entry e = {0};                                       \
+e.key = key;                                                    \
+e.next = -1;                                                    \
+index = array_size(map->values);                                \
+array_append(&map->values, e);                                  \
+return index;                                                   \
+}                                                                   \
+\
+void FUNC##_map_rehash(NAME##_Map *map, i64 new_size)             \
+{                                                                   \
+i64 i, j;                                                     \
+NAME##_Map new_map = {0};                                       \
+FUNC##_map_init(&new_map);                                      \
+array_set_size(&new_map.hashes, new_size);                      \
+array_reserve(&new_map.values, array_size(map->values));        \
+for (i = 0; i < new_size; i++)                                  \
+new_map.hashes[i] = -1;                                     \
+for (i = 0; i < array_size(map->values); i++)                   \
+{                                                               \
+NAME##_Map_Entry *entry;                                    \
+HashmapSearchResult s_result;                               \
+if (array_size(new_map.hashes) == 0)                        \
+FUNC##_map_grow(&new_map);                              \
+entry = &map->values[i];                                    \
+s_result = FUNC##_map_find(&new_map, entry->key);           \
+j = FUNC##_map_add_entry(&new_map, entry->key);             \
+if (s_result.prev_value_index < 0)                          \
+new_map.hashes[s_result.hash_index] = i;                \
+else                                                        \
+new_map.hashes[s_result.prev_value_index] = i;          \
+new_map.values[j].next = s_result.value_index;              \
+new_map.values[j].value = entry->value;                     \
+if (FUNC##_map_is_full(&new_map))                           \
+FUNC##_map_grow(&new_map);                              \
+}                                                               \
+FUNC##_map_destroy(map);                                        \
+map->hashes = new_map.hashes;                                   \
+map->values = new_map.values;                                   \
+}                                                                   \
+\
+VALUE *FUNC##_map_get(NAME##_Map *map, u64 key)                     \
+{                                                                   \
+HashmapSearchResult s_result = FUNC##_map_find(map, key);       \
+if (s_result.value_index >= 0)                                  \
+return &map->values[s_result.value_index].value;            \
+return NULL;                                                    \
+}                                                                   \
+\
+void FUNC##_map_set(NAME##_Map *map, u64 key, VALUE val) {          \
+i64 index;                                                      \
+if (array_size(map->hashes) == 0)                               \
+FUNC##_map_grow(map);                                       \
+HashmapSearchResult s_result = FUNC##_map_find(map, key);       \
+if (s_result.value_index >= 0)                                  \
+{                                                               \
+index = s_result.value_index;                               \
+}                                                               \
+else                                                            \
+{                                                               \
+index = FUNC##_map_add_entry(map, key);                     \
+if (s_result.prev_value_index >= 0)                         \
+map->values[s_result.prev_value_index].next = index; \
+else                                                        \
+map->hashes[s_result.hash_index] = index;               \
+}                                                               \
+map->values[index].value = val;                                 \
+if (FUNC##_map_is_full(map))                                    \
+FUNC##_map_grow(map);                                       \
+}                                                                   \
+\
+void FUNC##_map_remove(NAME##_Map *map, u64 key)                    \
+{ \
+HashmapSearchResult s_result = FUNC##_map_find(map, key);       \
+if (s_result.value_index >= 0)                                  \
+{                                                               \
+if (s_result.prev_value_index >= 0)                         \
+map->values[s_result.prev_value_index].next = map->values[s_result.value_index].next; \
+else                                                        \
+map->hashes[s_result.hash_index] = map->values[s_result.value_index].next; \
+map->values[s_result.value_index] = {0};                    \
+map->values[s_result.value_index].next = -1;                \
+\
+if (s_result.value_index != array_size(map->values)-1)      \
+{                                                           \
+map->values[s_result.value_index] = map->values[array_size(map->values)-1]; \
+u64 old_key = map->values[s_result.value_index].key;      \
+HashmapSearchResult last = FUNC##_map_find(map, old_key); \
+if (last.prev_value_index >= 0)                           \
+map->values[last.prev_value_index].next = s_result.value_index; \
+else                                                      \
+map->hashes[last.hash_index] = s_result.value_index;  \
+}                                                           \
+array_pop(&map->values);                                    \
+}                                                               \
+\
+}
 
 #define HASHMAP(NAME, FUNC, VALUE)              \
-    HASHMAP_DEC(NAME, FUNC, VALUE);             \
-    HASHMAP_DEF(NAME, FUNC, VALUE);
+HASHMAP_DEC(NAME, FUNC, VALUE);             \
+HASHMAP_DEF(NAME, FUNC, VALUE);
 
 #endif

@@ -11,6 +11,7 @@ keys_global = {
     { "interactive_kill_buffer",       "K", "Control" },
     //{ "interactive_switch_buffer",     "I", "Control" },
     { "tc_interactive_switch_buffer",     "I", "Control" },
+    { "tc_toggle_debug",               "Z", "Control", "Shift"},
     { "project_go_to_root_directory",  "H", "Control" },
     { "save_all_dirty_buffers",        "S", "Control", "Shift" },
     { "change_to_build_panel",         "Period", "Alt" },
