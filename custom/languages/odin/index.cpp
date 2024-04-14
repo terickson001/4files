@@ -4,7 +4,7 @@ function Code_Index_Note_Kind odin_ident_note(Code_Index_File *index, Generic_Pa
 {
     Scratch_Block scratch(state->app);
     String_Const_u8 token_as_string = push_token_lexeme(state->app, scratch, index->buffer, ident);
-
+	
     for (Buffer_ID buf = get_buffer_next(state->app, 0, Access_Always);
          buf != 0;
          buf = get_buffer_next(state->app, buf, Access_Always))
@@ -12,11 +12,11 @@ function Code_Index_Note_Kind odin_ident_note(Code_Index_File *index, Generic_Pa
         Code_Index_File *file = code_index_get_file(buf);
         if (file == 0)
             continue;
-
+		
         for (i32 i = 0; i < file->note_array.count; i++)
         {
             Code_Index_Note *note = file->note_array.ptrs[i];
-
+			
             if (string_match(note->text, token_as_string, StringMatch_Exact))
                 return note->note_kind;
         }
@@ -30,7 +30,7 @@ function b32 odin_parse_decl(Code_Index_File *index, Generic_Parse_State *state,
     generic_parse_skip_soft_tokens(index, state);
     if (state->finished)
         return false;
-
+	
     Token *peek = token_it_read(&state->it);
     if (peek != 0 && peek->sub_kind == TokenOdinKind_ColonColon)
     {
@@ -48,14 +48,14 @@ function b32 odin_parse_decl(Code_Index_File *index, Generic_Parse_State *state,
                 index_new_note(index, state, Ii64(ident), CodeIndexNote_Type, parent);
                 return true;
             }break;
-
+			
             case TokenOdinKind_force_inline:
             case TokenOdinKind_type:
             case TokenOdinKind_proc: {
                 index_new_note(index, state, Ii64(ident), CodeIndexNote_Function, parent);
                 return true;
             } break;
-
+			
             default: {
                 if (peek->kind == TokenBaseKind_Keyword)
                 {
@@ -69,7 +69,7 @@ function b32 odin_parse_decl(Code_Index_File *index, Generic_Parse_State *state,
                         index_new_note(index, state, Ii64(ident), CodeIndexNote_Function, parent);
                         return true;
                     }
-
+					
                 }
                 else if (peek->kind == TokenBaseKind_Identifier)
                 {
@@ -90,7 +90,7 @@ function b32 odin_parse_decl(Code_Index_File *index, Generic_Parse_State *state,
         peek = token_it_read(&state->it);
         if (peek == 0)
             return false;
-
+		
         if (peek->kind == TokenBaseKind_Keyword && odin_is_builtin_proc(peek))
         {
             index_new_note(index, state, Ii64(ident), CodeIndexNote_Function, parent);
@@ -106,7 +106,7 @@ function b32 odin_parse_decl(Code_Index_File *index, Generic_Parse_State *state,
             }
         }
     }
-
+	
     return false;
 }
 
@@ -118,9 +118,9 @@ function Code_Index_Nest *odin_parse_statement(Code_Index_File *index, Generic_P
 	result->open = Ii64(token->pos);
 	result->close = Ii64(max_i64);
 	result->file = index;
-
+	
 	state->in_statement = true;
-
+	
     Token *prev_non_whitespace = token;
 	for (;;){
 		token = token_it_read(&state->it);
@@ -131,13 +131,13 @@ function Code_Index_Nest *odin_parse_statement(Code_Index_File *index, Generic_P
     		break;
     	}
 		generic_parse_skip_soft_tokens(index, state);
-
+		
 		token = token_it_read(&state->it);
 		prev_non_whitespace = token;
 		if (token == 0 || state->finished){
 			break;
 		}
-
+		
 		if (state->in_preprocessor){
 			if (!HasFlag(token->flags, TokenBaseFlag_PreprocessorBody) ||
 				token->kind == TokenBaseKind_Preprocessor){
@@ -153,7 +153,7 @@ function Code_Index_Nest *odin_parse_statement(Code_Index_File *index, Generic_P
 				break;
 			}
 		}
-
+		
 		if (token->kind == TokenBaseKind_ScopeOpen ||
 			token->kind == TokenBaseKind_ScopeClose ||
 			token->kind == TokenBaseKind_ParentheticalOpen){
@@ -161,19 +161,19 @@ function Code_Index_Nest *odin_parse_statement(Code_Index_File *index, Generic_P
 			result->close = Ii64(token->pos);
 			break;
 		}
-
+		
 		if (token->kind == TokenBaseKind_StatementClose) {
 			result->is_closed = true;
 			result->close = Ii64(token);
 			generic_parse_inc(state);
 			break;
 		}
-
+		
 		generic_parse_inc(state);
 	}
-
+	
 	state->in_statement = false;
-
+	
 	return(result);
 }
 
@@ -199,7 +199,7 @@ function b32 odin_try_index(Code_Index_File *index, Generic_Parse_State *state)
 	}
 	else if (token->sub_kind == TokenOdinKind_foreign)
 	{
-
+		
 		generic_parse_inc(state);
 		generic_parse_skip_soft_tokens(index, state);
 		Token *peek = token_it_read(&state->it);
@@ -214,7 +214,7 @@ function b32 odin_try_index(Code_Index_File *index, Generic_Parse_State *state)
 			generic_parse_skip_soft_tokens(index, state);
 			peek = token_it_read(&state->it);
 		}
-
+		
 		if (peek->kind == TokenBaseKind_ScopeOpen)
 		{
 			generic_parse_inc(state);
@@ -222,6 +222,6 @@ function b32 odin_try_index(Code_Index_File *index, Generic_Parse_State *state)
 			return true;
 		}
 	}
-
+	
 	return false;
 }
