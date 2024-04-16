@@ -23,6 +23,9 @@ themes/*
 !themes/theme-nord.4coder
 !themes/theme-liqube.4coder
 
+release/*
+*.rdbg
+
 custom/4coder_audio.cpp
 custom/4coder_audio.h
 custom/4coder_dynamic_bindings.cpp
