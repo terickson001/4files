@@ -55,9 +55,9 @@ function b32 odin_check_semicolon(Token *token)
         case TokenOdinKind_ParenCl:
         case TokenOdinKind_BrackCl:
         case TokenOdinKind_BraceCl:
-            return true;
+		return true;
         default:
-            return false;
+		return odin_is_builtin_type(token) || token->kind == TokenBaseKind_Identifier;
     }
 }
 
@@ -117,17 +117,17 @@ static FColor odin_get_token_color(Token token)
 function Parsed_Jump odin_parse_jump_location(String_Const_u8 line)
 {
     Parsed_Jump jump = {};
-
+	
     line = string_skip_chop_whitespace(line);
     u64 lparen_pos = string_find_first(line, '(');
     u64 colon_pos  = string_find_first(string_skip(line, lparen_pos), ':')+lparen_pos;
     u64 rparen_pos = string_find_first(string_skip(line, colon_pos), ')')+colon_pos;
-
+	
     String_Const_u8 file_name     = string_prefix(line, lparen_pos);
     String_Const_u8 line_number   = string_skip(string_prefix(line, colon_pos), lparen_pos+1);
     String_Const_u8 column_number = string_skip(string_prefix(line, rparen_pos), colon_pos+1);
     String_Const_u8 message = string_skip(line, rparen_pos + 2);
-
+	
     if (file_name.size > 0 && line_number.size > 0 && column_number.size > 0)
     {
         jump.location.file   = file_name;
@@ -137,12 +137,12 @@ function Parsed_Jump odin_parse_jump_location(String_Const_u8 line)
         // jump.msg = message;
         jump.success = true;
     }
-
+	
     if (!jump.success)
         block_zero_struct(&jump);
     else
         jump.is_sub_jump = false; // @note(tyler): What is this for?
-
+	
     return jump;
 }
 
@@ -160,7 +160,7 @@ static Language language_def_odin = LANG_DEF("Odin", odin, ".odin");
 function void init_language_odin()
 {
     push_language(&language_def_odin);
-
+	
 #ifdef EXT_FUNCTION_INDEX
     Extension_Support findex_support = {EXT_FUNCTION_INDEX, make_data_struct(&odin_function_indexer)};
     language_add_extension(&language_def_odin, findex_support);

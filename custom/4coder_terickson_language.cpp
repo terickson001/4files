@@ -183,7 +183,7 @@ language_generic_parse_scope(Code_Index_File *index, Generic_Parse_State *state,
 		
 		
         if (token->kind == TokenBaseKind_ScopeOpen){
-            Code_Index_Nest *nest = generic_parse_scope(index, state);
+            Code_Index_Nest *nest = language_generic_parse_scope(index, state, allow_decl);
             nest->parent = result;
             code_index_push_nest(&result->nest_list, nest);
             continue;
